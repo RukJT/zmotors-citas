@@ -671,7 +671,7 @@
 ══════════════════════════════════════════════════════ -->
 <div id="screen-admin" class="screen">
   <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('home')">←</button>
+    <button type="button" class="navbar-back" onclick="currentUser?.rol==='admin'?goTo('admin-dash'):goTo('home')">←</button>
     <div class="navbar-title">Administración</div>
   </div>
   <div class="tabs">
@@ -814,7 +814,10 @@
 <div id="screen-admin-dash" class="screen">
   <div class="navbar" id="adminDashNavbar">
     <div class="navbar-title">Panel General</div>
-    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
+    <div style="display:flex;gap:8px;">
+      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:13px;cursor:pointer;padding:6px 12px;border-radius:8px;" onclick="goTo('admin')">⚙️ Config</button>
+      <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
+    </div>
   </div>
 
   <!-- Hero con logo Z Motors -->

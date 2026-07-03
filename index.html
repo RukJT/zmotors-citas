@@ -816,66 +816,114 @@
   <div class="navbar" id="adminDashNavbar">
     <div class="navbar-title">Panel General</div>
     <div style="display:flex;gap:8px;">
-      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:13px;cursor:pointer;padding:6px 12px;border-radius:8px;" onclick="goTo('admin')">⚙️ Config</button>
+      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;" onclick="goTo('resumen-mensual')">📊 Mensual</button>
+      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;" onclick="goTo('admin')">⚙️ Config</button>
       <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
     </div>
   </div>
 
-  <!-- Hero con logo Z Motors -->
-  <div class="hero" style="padding:24px 20px 20px;">
-    <div class="brand-logo no-img" style="width:56px;height:56px;font-size:22px;margin-bottom:12px;">Z</div>
-    <h1 style="font-size:20px;">Dashboard General</h1>
-    <p id="adminDashFecha" style="font-size:13px;opacity:.8;"></p>
+  <div class="hero" style="padding:20px 20px 16px;">
+    <div class="brand-logo no-img" style="width:52px;height:52px;font-size:20px;margin-bottom:10px;">Z</div>
+    <h1 style="font-size:18px;">Dashboard General</h1>
+    <p id="adminDashFecha" style="font-size:12px;opacity:.8;"></p>
   </div>
 
-  <!-- Filtro de fecha -->
-  <div style="padding:12px 16px 0;">
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="date" id="adminFiltroFecha" class="form-input" style="flex:1;">
-      <button type="button" class="btn btn-primary" onclick="cargarAdminDash()" style="width:auto;margin:0;padding:12px 16px;white-space:nowrap;">Buscar</button>
-    </div>
+  <!-- Tabs de periodo -->
+  <div style="display:flex;gap:0;padding:0 16px 12px;border-bottom:1px solid var(--border);">
+    <button type="button" id="tabDia" class="tab-btn active" onclick="cambiarPeriodo('dia',this)" style="flex:1;">Hoy</button>
+    <button type="button" id="tabSemana" class="tab-btn" onclick="cambiarPeriodo('semana',this)" style="flex:1;">Semana</button>
+    <button type="button" id="tabMes" class="tab-btn" onclick="cambiarPeriodo('mes',this)" style="flex:1;">Mes</button>
+    <button type="button" id="tabCustom" class="tab-btn" onclick="cambiarPeriodo('custom',this)" style="flex:1;">Fecha</button>
+  </div>
+
+  <!-- Filtro fecha custom -->
+  <div id="adminFiltroCustom" style="display:none;padding:10px 16px 0;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="date" id="adminFiltroDesde" class="form-input" style="flex:1;min-width:120px;">
+    <input type="date" id="adminFiltroHasta" class="form-input" style="flex:1;min-width:120px;">
+    <button type="button" class="btn btn-primary" onclick="cargarAdminDash()" style="width:auto;margin:0;padding:10px 14px;">Buscar</button>
   </div>
 
   <!-- KPIs Globales -->
-  <div style="padding:12px 16px 0;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Resumen del día</div>
+  <div style="padding:12px 16px 4px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Resumen general</div>
   </div>
-  <div class="kpi-strip" style="padding-top:0;">
-    <div class="kpi-box"><div class="kpi-label">Total citas</div><div class="kpi-value" id="adKpiTotal">0</div></div>
+  <div class="kpi-strip" style="padding-top:4px;">
+    <div class="kpi-box"><div class="kpi-label">Citas</div><div class="kpi-value" id="adKpiTotal">0</div></div>
     <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="adKpiLlegaron" style="color:var(--success)">0</div></div>
     <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="adKpiNo" style="color:var(--error)">0</div></div>
     <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="adKpiVentas" style="color:var(--warning)">0</div></div>
   </div>
 
-  <!-- Tasa global -->
+  <!-- Embudo de conversión -->
   <div class="card" style="margin-top:0;">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Embudo de conversión</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
       <div>
-        <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Tasa de asistencia global</div>
-        <div style="font-size:32px;font-weight:900;color:var(--brand);" id="adTasa">0%</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="font-weight:600;">Citas agendadas</span>
+          <span id="adEmbudoCitas" style="font-weight:700;">0</span>
+        </div>
+        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
+          <div style="height:100%;background:#1D3885;border-radius:99px;width:100%;"></div>
+        </div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:12px;color:var(--muted);">Conversión a venta</div>
-        <div style="font-size:24px;font-weight:800;color:var(--warning);" id="adConversion">0%</div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="font-weight:600;">Clientes llegaron</span>
+          <span style="display:flex;gap:6px;align-items:center;"><span id="adEmbudoLlegaron" style="font-weight:700;">0</span><span id="adEmbudoTasaLlegaron" style="color:var(--success);font-size:11px;"></span></span>
+        </div>
+        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
+          <div id="adBarLlegaron" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s;"></div>
+        </div>
       </div>
-    </div>
-    <!-- Progress bar -->
-    <div style="background:var(--border);border-radius:99px;height:8px;margin-top:12px;overflow:hidden;">
-      <div id="adProgressBar" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="font-weight:600;">Ventas cerradas</span>
+          <span style="display:flex;gap:6px;align-items:center;"><span id="adEmbudoVentas" style="font-weight:700;">0</span><span id="adEmbudoTasaVentas" style="color:var(--warning);font-size:11px;"></span></span>
+        </div>
+        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
+          <div id="adBarVentas" style="height:100%;background:var(--warning);border-radius:99px;width:0%;transition:width .5s;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Por día de la semana -->
+  <div class="card" style="margin-top:0;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Citas por día</div>
+    <div id="adPorDia" style="display:flex;gap:4px;align-items:flex-end;height:80px;"></div>
+    <div id="adPorDiaLabels" style="display:flex;gap:4px;margin-top:4px;"></div>
+  </div>
+
+  <!-- Por horario -->
+  <div class="card" style="margin-top:0;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Horarios más frecuentes</div>
+    <div id="adPorHorario" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
   <!-- Por marca -->
-  <div style="padding:0 16px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Por marca</div>
+  <div style="padding:4px 16px 4px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por marca</div>
   </div>
   <div id="adPorMarca" style="padding:0 16px 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;"></div>
 
   <!-- Por agencia -->
-  <div style="padding:8px 16px 0;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Desempeño por agencia</div>
+  <div style="padding:4px 16px 4px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Desempeño por agencia</div>
   </div>
-  <div id="adPorAgencia" style="padding:0 16px 24px;"></div>
+  <div id="adPorAgencia" style="padding:0 16px 8px;"></div>
+
+  <!-- Top asesores -->
+  <div style="padding:4px 16px 4px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Top asesores (ventas)</div>
+  </div>
+  <div id="adTopAsesores" style="padding:0 16px 8px;"></div>
+
+  <!-- Vehículos más solicitados -->
+  <div style="padding:4px 16px 4px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Vehículos más solicitados</div>
+  </div>
+  <div id="adTopVehiculos" style="padding:0 16px 24px;"></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════
@@ -979,6 +1027,43 @@
       <div style="font-weight:700;color:var(--muted);margin-top:6px;font-size:14px;">Leads desde Kommo</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px;">Disponible cuando se integre Kommo CRM</div>
     </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: RESUMEN MENSUAL
+══════════════════════════════════════════════════════ -->
+<div id="screen-resumen-mensual" class="screen">
+  <div class="navbar">
+    <button type="button" class="navbar-back" onclick="goTo('admin-dash')">←</button>
+    <div class="navbar-title">Resumen Mensual</div>
+    <button type="button" onclick="descargarResumen()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;">⬇ PDF</button>
+  </div>
+
+  <!-- Selector de mes -->
+  <div style="padding:14px 16px;display:flex;gap:8px;align-items:center;">
+    <select id="rmMes" class="form-select" style="flex:1;">
+      <option value="0">Enero</option>
+      <option value="1">Febrero</option>
+      <option value="2">Marzo</option>
+      <option value="3">Abril</option>
+      <option value="4">Mayo</option>
+      <option value="5">Junio</option>
+      <option value="6">Julio</option>
+      <option value="7">Agosto</option>
+      <option value="8">Septiembre</option>
+      <option value="9">Octubre</option>
+      <option value="10">Noviembre</option>
+      <option value="11">Diciembre</option>
+    </select>
+    <select id="rmAnio" class="form-select" style="width:90px;"></select>
+    <button type="button" class="btn btn-primary" onclick="cargarResumenMensual()" style="width:auto;margin:0;padding:12px 14px;">Ver</button>
+  </div>
+
+  <!-- Contenido del resumen -->
+  <div id="rmContenido" style="padding-bottom:32px;">
+    <div class="empty"><div class="empty-icon">📊</div>Selecciona un mes para ver el resumen</div>
   </div>
 </div>
 
@@ -1780,89 +1865,213 @@ function routeByRole() {
 // ════════════════════════════════════════════════════════
 const BRAND_NAMES = { vw:'Volkswagen', audi:'Audi', seat:'SEAT', cupra:'CUPRA', geely:'Geely', omoda:'Omoda' };
 const BRAND_COLS  = { vw:'#001E50', audi:'#BB0A21', seat:'#1A1A1A', cupra:'#222222', geely:'#003087', omoda:'#CC0000' };
+const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+let adminPeriodo = 'dia';
+
+function cambiarPeriodo(p, btn) {
+  adminPeriodo = p;
+  document.querySelectorAll('#screen-admin-dash .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const fc = $('adminFiltroCustom');
+  if(fc) fc.style.display = p==='custom'?'flex':'none';
+  if(p!=='custom') cargarAdminDash();
+}
 
 function setupAdminDash() {
   const hoy = new Date().toISOString().split('T')[0];
-  $('adminFiltroFecha').value = hoy;
+  $('adminFiltroDesde').value = hoy;
+  $('adminFiltroHasta').value = hoy;
   $('adminDashFecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  adminPeriodo = 'dia';
   cargarAdminDash();
 }
 
+function getRango() {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if(adminPeriodo==='dia') {
+    const man=new Date(hoy); man.setDate(man.getDate()+1);
+    return {desde:hoy, hasta:man};
+  } else if(adminPeriodo==='semana') {
+    const lun=new Date(hoy); lun.setDate(lun.getDate()-lun.getDay()+1);
+    const dom=new Date(lun); dom.setDate(dom.getDate()+7);
+    return {desde:lun, hasta:dom};
+  } else if(adminPeriodo==='mes') {
+    const ini=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    const fin=new Date(hoy.getFullYear(),hoy.getMonth()+1,1);
+    return {desde:ini, hasta:fin};
+  } else {
+    const d=parseFecha($('adminFiltroDesde').value)||hoy;
+    const h=parseFecha($('adminFiltroHasta').value)||hoy;
+    h.setDate(h.getDate()+1);
+    return {desde:d, hasta:h};
+  }
+}
+
 async function cargarAdminDash() {
-  const fechaStr = $('adminFiltroFecha').value;
-  if(!fechaStr) return;
-  const fechaDate = parseFecha(fechaStr);
-  const man = new Date(fechaDate); man.setDate(man.getDate()+1);
+  const {desde,hasta} = getRango();
   try {
     const snap = await db.collection('citas_agencia')
-      .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+      .where('fechaCita','>=',desde).where('fechaCita','<',hasta).get();
     const citas = snap.docs.map(d=>d.data());
 
-    const total = citas.length;
-    const llegaron = citas.filter(c=>c.asistio==='Si').length;
-    const noLlegaron = citas.filter(c=>c.asistio==='No').length;
-    const ventas = citas.filter(c=>c.asistio==='Venta').length;
-    const tasa = total>0?Math.round(llegaron/total*100):0;
-    const conv = total>0?Math.round(ventas/total*100):0;
+    const total=citas.length;
+    const llegaron=citas.filter(c=>c.asistio==='Si').length;
+    const noLlegaron=citas.filter(c=>c.asistio==='No').length;
+    const ventas=citas.filter(c=>c.asistio==='Venta').length;
+    const tasaLleg=total>0?Math.round(llegaron/total*100):0;
+    const tasaVenta=total>0?Math.round(ventas/total*100):0;
 
-    $('adKpiTotal').textContent = total;
-    $('adKpiLlegaron').textContent = llegaron;
-    $('adKpiNo').textContent = noLlegaron;
-    $('adKpiVentas').textContent = ventas;
-    $('adTasa').textContent = tasa+'%';
-    $('adConversion').textContent = conv+'%';
-    $('adProgressBar').style.width = tasa+'%';
+    // KPIs
+    $('adKpiTotal').textContent=total;
+    $('adKpiLlegaron').textContent=llegaron;
+    $('adKpiNo').textContent=noLlegaron;
+    $('adKpiVentas').textContent=ventas;
+
+    // Embudo
+    $('adEmbudoCitas').textContent=total;
+    $('adEmbudoLlegaron').textContent=llegaron;
+    $('adEmbudoVentas').textContent=ventas;
+    $('adEmbudoTasaLlegaron').textContent=tasaLleg+'%';
+    $('adEmbudoTasaVentas').textContent=tasaVenta+'%';
+    $('adBarLlegaron').style.width=tasaLleg+'%';
+    $('adBarVentas').style.width=tasaVenta+'%';
+
+    // Por día de la semana
+    const porDia=[0,0,0,0,0,0,0];
+    citas.forEach(c=>{
+      const d=c.fechaCita?.toDate?c.fechaCita.toDate():new Date(c.fechaCita);
+      if(d) porDia[d.getDay()]++;
+    });
+    const maxDia=Math.max(...porDia,1);
+    $('adPorDia').innerHTML=porDia.map((v,i)=>`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;">
+        <div style="font-size:10px;font-weight:700;color:var(--brand);">${v||''}</div>
+        <div style="width:100%;background:${v>0?'var(--brand)':'var(--border)'};border-radius:4px 4px 0 0;height:${Math.round(v/maxDia*68)+4}px;transition:height .4s;"></div>
+      </div>`).join('');
+    $('adPorDiaLabels').innerHTML=DIAS.map(d=>`<div style="flex:1;text-align:center;font-size:10px;color:var(--muted);font-weight:600;">${d}</div>`).join('');
+
+    // Por horario
+    const porHora={};
+    citas.forEach(c=>{
+      const h=(c.horaCita||'').split(':')[0];
+      if(h) porHora[h]=(porHora[h]||0)+1;
+    });
+    const topHoras=Object.entries(porHora).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const maxH=topHoras[0]?.[1]||1;
+    $('adPorHorario').innerHTML=topHoras.map(([h,v])=>`
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);width:44px;">${h}:00</div>
+        <div style="flex:1;background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
+          <div style="height:100%;background:var(--brand);border-radius:99px;width:${Math.round(v/maxH*100)}%;"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--brand);width:24px;text-align:right;">${v}</div>
+      </div>`).join('') || '<div style="font-size:13px;color:var(--muted);">Sin datos</div>';
 
     // Por marca
-    const porMarca = {};
-    citas.forEach(c => {
-      const m = c.agenciaMarca||'otro';
+    const porMarca={};
+    citas.forEach(c=>{
+      const m=c.agenciaMarca||'otro';
       if(!porMarca[m]) porMarca[m]={total:0,llegaron:0,ventas:0};
       porMarca[m].total++;
       if(c.asistio==='Si') porMarca[m].llegaron++;
       if(c.asistio==='Venta') porMarca[m].ventas++;
     });
-    $('adPorMarca').innerHTML = Object.entries(porMarca).map(([m,d])=>`
-      <div style="background:#fff;border-radius:10px;padding:14px;border-top:4px solid ${BRAND_COLS[m]||'#ccc'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">${esc(BRAND_NAMES[m]||m.toUpperCase())}</div>
-        <div style="font-size:22px;font-weight:900;color:${BRAND_COLS[m]||'#333'}">${d.total}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-          ✅ ${d.llegaron} llegaron · 🏆 ${d.ventas} ventas
-        </div>
-      </div>`).join('') || '<div class="empty">Sin citas</div>';
+    $('adPorMarca').innerHTML=Object.entries(porMarca)
+      .sort((a,b)=>b[1].total-a[1].total)
+      .map(([m,d])=>{
+        const t=d.total; const tasa=t>0?Math.round(d.llegaron/t*100):0;
+        return `<div style="background:#fff;border-radius:10px;padding:12px;border-top:4px solid ${BRAND_COLS[m]||'#ccc'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;">${esc(BRAND_NAMES[m]||m.toUpperCase())}</div>
+          <div style="font-size:24px;font-weight:900;color:${BRAND_COLS[m]||'#333'}">${t}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">✅ ${d.llegaron} · 🏆 ${d.ventas} · ${tasa}%</div>
+        </div>`;
+      }).join('') || '<div class="empty" style="grid-column:1/-1;">Sin citas</div>';
 
     // Por agencia
-    const porAgencia = {};
-    citas.forEach(c => {
-      const a = c.agencia||'Sin agencia';
+    const porAgencia={};
+    citas.forEach(c=>{
+      const a=c.agencia||'Sin agencia';
       if(!porAgencia[a]) porAgencia[a]={total:0,llegaron:0,no:0,ventas:0,marca:c.agenciaMarca||''};
       porAgencia[a].total++;
       if(c.asistio==='Si') porAgencia[a].llegaron++;
       if(c.asistio==='No') porAgencia[a].no++;
       if(c.asistio==='Venta') porAgencia[a].ventas++;
     });
-    $('adPorAgencia').innerHTML = Object.entries(porAgencia)
+    $('adPorAgencia').innerHTML=Object.entries(porAgencia)
       .sort((a,b)=>b[1].total-a[1].total)
       .map(([ag,d])=>{
         const t=d.total; const tasa=t>0?Math.round(d.llegaron/t*100):0;
-        return `
-        <div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:4px solid ${BRAND_COLS[d.marca]||'var(--brand)'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        const tasaV=t>0?Math.round(d.ventas/t*100):0;
+        return `<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:8px;border-left:4px solid ${BRAND_COLS[d.marca]||'var(--brand)'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div style="font-weight:700;font-size:14px;">${esc(ag)}</div>
-            <span style="background:var(--bg);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--brand);">${tasa}% asist.</span>
+            <div style="display:flex;gap:6px;">
+              <span style="background:#DCFCE7;color:var(--success);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;">${tasa}% asist.</span>
+              <span style="background:#FEF3C7;color:var(--warning);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;">${tasaV}% venta</span>
+            </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;text-align:center;">
-            <div><div style="font-weight:800;font-size:16px;">${t}</div><div style="color:var(--muted)">Total</div></div>
-            <div><div style="font-weight:800;font-size:16px;color:var(--success)">${d.llegaron}</div><div style="color:var(--muted)">Llegaron</div></div>
-            <div><div style="font-weight:800;font-size:16px;color:var(--error)">${d.no}</div><div style="color:var(--muted)">No llegaron</div></div>
-            <div><div style="font-weight:800;font-size:16px;color:var(--warning)">${d.ventas}</div><div style="color:var(--muted)">Ventas</div></div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;text-align:center;font-size:12px;">
+            <div><div style="font-weight:800;font-size:18px;">${t}</div><div style="color:var(--muted);font-size:10px;">Total</div></div>
+            <div><div style="font-weight:800;font-size:18px;color:var(--success)">${d.llegaron}</div><div style="color:var(--muted);font-size:10px;">Llegaron</div></div>
+            <div><div style="font-weight:800;font-size:18px;color:var(--error)">${d.no}</div><div style="color:var(--muted);font-size:10px;">No llegaron</div></div>
+            <div><div style="font-weight:800;font-size:18px;color:var(--warning)">${d.ventas}</div><div style="color:var(--muted);font-size:10px;">Ventas</div></div>
           </div>
           <div style="background:var(--border);border-radius:99px;height:6px;margin-top:10px;overflow:hidden;">
-            <div style="height:100%;background:var(--success);border-radius:99px;width:${tasa}%;"></div>
+            <div style="height:100%;background:linear-gradient(90deg,var(--success) ${tasa}%,var(--warning) ${tasa}% ${tasa+tasaV}%,transparent ${tasa+tasaV}%);border-radius:99px;width:100%;"></div>
           </div>
         </div>`;
-      }).join('') || '<div class="empty">Sin citas para esta fecha</div>';
-  } catch(e) { console.error(e); }
+      }).join('') || '<div class="empty">Sin citas para este período</div>';
+
+    // Top asesores por ventas
+    const porAsesor={};
+    citas.forEach(c=>{
+      const a=c.asesor||'Sin asignar';
+      if(!porAsesor[a]) porAsesor[a]={total:0,ventas:0,llegaron:0,agencia:c.agencia||''};
+      porAsesor[a].total++;
+      if(c.asistio==='Si') porAsesor[a].llegaron++;
+      if(c.asistio==='Venta') porAsesor[a].ventas++;
+    });
+    const topAsesores=Object.entries(porAsesor).sort((a,b)=>b[1].ventas-a[1].ventas).slice(0,10);
+    $('adTopAsesores').innerHTML=topAsesores.length
+      ? topAsesores.map(([nombre,d],i)=>`
+        <div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">${i+1}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:13px;">${esc(nombre)}</div>
+            <div style="font-size:11px;color:var(--muted);">${esc(d.agencia)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:800;color:var(--warning);">🏆 ${d.ventas}</div>
+            <div style="font-size:11px;color:var(--muted);">${d.total} citas</div>
+          </div>
+        </div>`).join('')
+      : '<div class="empty">Sin datos</div>';
+
+    // Top vehículos
+    const porVehiculo={};
+    citas.forEach(c=>{
+      const v=c.vehiculo||'Sin especificar';
+      if(!porVehiculo[v]) porVehiculo[v]={total:0,ventas:0};
+      porVehiculo[v].total++;
+      if(c.asistio==='Venta') porVehiculo[v].ventas++;
+    });
+    const topV=Object.entries(porVehiculo).sort((a,b)=>b[1].total-a[1].total).slice(0,8);
+    const maxV=topV[0]?.[1]?.total||1;
+    $('adTopVehiculos').innerHTML=topV.length
+      ? topV.map(([v,d])=>`
+        <div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span style="font-weight:600;">${esc(v)}</span>
+            <span style="color:var(--muted);">${d.total} citas · 🏆 ${d.ventas}</span>
+          </div>
+          <div style="background:var(--border);border-radius:99px;height:7px;overflow:hidden;">
+            <div style="height:100%;background:var(--brand);border-radius:99px;width:${Math.round(d.total/maxV*100)}%;"></div>
+          </div>
+        </div>`).join('')
+      : '<div class="empty">Sin datos</div>';
+
+  } catch(e) { console.error('Admin dash error:', e); }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2032,6 +2241,341 @@ async function cargarGerenteArea() {
         </div>`;
       }).join('') || '<div class="empty">Sin datos</div>';
   } catch(e) { console.error(e); }
+}
+
+
+// ════════════════════════════════════════════════════════
+// RESUMEN MENSUAL
+// ════════════════════════════════════════════════════════
+function setupResumenMensual() {
+  const hoy = new Date();
+  // Populate years (current year and 2 previous)
+  const anioSel = $('rmAnio');
+  anioSel.innerHTML = '';
+  for(let y=hoy.getFullYear(); y>=hoy.getFullYear()-2; y--) {
+    const o=document.createElement('option');
+    o.value=y; o.textContent=y;
+    anioSel.appendChild(o);
+  }
+  // Default to previous month
+  const mesPrev = hoy.getMonth()===0?11:hoy.getMonth()-1;
+  $('rmMes').value = mesPrev;
+  $('rmAnio').value = hoy.getMonth()===0?hoy.getFullYear()-1:hoy.getFullYear();
+}
+
+async function cargarResumenMensual() {
+  const mes = parseInt($('rmMes').value);
+  const anio = parseInt($('rmAnio').value);
+  const MESES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesNombre = MESES_NOMBRES[mes];
+
+  const desde = new Date(anio, mes, 1);
+  const hasta = new Date(anio, mes+1, 1);
+
+  // Previous month for comparison
+  const desdePrev = new Date(anio, mes-1, 1);
+  const hastaPrev = new Date(anio, mes, 1);
+
+  try {
+    const [snapActual, snapPrev] = await Promise.all([
+      db.collection('citas_agencia').where('fechaCita','>=',desde).where('fechaCita','<',hasta).get(),
+      db.collection('citas_agencia').where('fechaCita','>=',desdePrev).where('fechaCita','<',hastaPrev).get()
+    ]);
+
+    const citas = snapActual.docs.map(d=>d.data());
+    const citasPrev = snapPrev.docs.map(d=>d.data());
+
+    // Calcular métricas
+    const total = citas.length;
+    const totalPrev = citasPrev.length;
+    const llegaron = citas.filter(c=>c.asistio==='Si').length;
+    const noLlegaron = citas.filter(c=>c.asistio==='No').length;
+    const ventas = citas.filter(c=>c.asistio==='Venta').length;
+    const llegPrev = citasPrev.filter(c=>c.asistio==='Si').length;
+    const ventPrev = citasPrev.filter(c=>c.asistio==='Venta').length;
+    const tasa = total>0?Math.round(llegaron/total*100):0;
+    const tasaVenta = total>0?Math.round(ventas/total*100):0;
+    const tasaPrev = totalPrev>0?Math.round(llegPrev/totalPrev*100):0;
+
+    // Mejor agencia
+    const porAg={};
+    citas.forEach(c=>{
+      const a=c.agencia||'Sin agencia';
+      if(!porAg[a]) porAg[a]={total:0,ventas:0,llegaron:0,marca:c.agenciaMarca||''};
+      porAg[a].total++;
+      if(c.asistio==='Si') porAg[a].llegaron++;
+      if(c.asistio==='Venta') porAg[a].ventas++;
+    });
+    const mejorAgencia = Object.entries(porAg).sort((a,b)=>b[1].ventas-a[1].ventas)[0];
+
+    // Mejor asesor
+    const porAs={};
+    citas.forEach(c=>{
+      const a=c.asesor||'Sin asignar';
+      if(!porAs[a]) porAs[a]={ventas:0,total:0,agencia:c.agencia||''};
+      porAs[a].total++;
+      if(c.asistio==='Venta') porAs[a].ventas++;
+    });
+    const mejorAsesor = Object.entries(porAs).sort((a,b)=>b[1].ventas-a[1].ventas)[0];
+
+    // Vehículo más solicitado
+    const porV={};
+    citas.forEach(c=>{ const v=c.vehiculo||'Sin especificar'; porV[v]=(porV[v]||0)+1; });
+    const topVehiculo = Object.entries(porV).sort((a,b)=>b[1]-a[1])[0];
+
+    // Día con más citas
+    const porDia=[0,0,0,0,0,0,0];
+    citas.forEach(c=>{
+      const d=c.fechaCita?.toDate?c.fechaCita.toDate():new Date(c.fechaCita);
+      if(d) porDia[d.getDay()]++;
+    });
+    const maxDiaIdx = porDia.indexOf(Math.max(...porDia));
+
+    // Por agencia completo
+    const agenciasOrdenadas = Object.entries(porAg).sort((a,b)=>b[1].total-a[1].total);
+
+    // Variaciones vs mes anterior
+    const varTotal = totalPrev>0?Math.round((total-totalPrev)/totalPrev*100):0;
+    const varTasa = tasa - tasaPrev;
+    const varVentas = ventPrev>0?Math.round((ventas-ventPrev)/ventPrev*100):0;
+
+    function varTag(v) {
+      if(v>0) return `<span style="color:var(--success);font-size:11px;font-weight:700;">▲ ${v>0?'+':''}${v}%</span>`;
+      if(v<0) return `<span style="color:var(--error);font-size:11px;font-weight:700;">▼ ${v}%</span>`;
+      return `<span style="color:var(--muted);font-size:11px;">= Sin cambio</span>`;
+    }
+
+    // Save for PDF
+    window._rmData = { mes:mesNombre, anio, total, llegaron, noLlegaron, ventas, tasa, tasaVenta,
+      mejorAgencia, mejorAsesor, topVehiculo, varTotal, varTasa, varVentas, agenciasOrdenadas };
+
+    $('rmContenido').innerHTML = `
+      <!-- Header del reporte -->
+      <div style="background:linear-gradient(135deg,#1D3885,#2D4FA0);color:#fff;margin:0 16px 16px;border-radius:12px;padding:20px;" id="rmHeader">
+        <div style="font-size:11px;opacity:.7;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Reporte Mensual</div>
+        <div style="font-size:24px;font-weight:900;margin:4px 0;">${mesNombre} ${anio}</div>
+        <div style="font-size:12px;opacity:.7;">Z Motors Intelligence Platform</div>
+      </div>
+
+      <!-- KPIs con variación -->
+      <div style="padding:0 16px;margin-bottom:4px;">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Métricas clave</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 16px 12px;">
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);text-align:center;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Citas</div>
+          <div style="font-size:28px;font-weight:900;color:var(--brand);">${total}</div>
+          <div style="margin-top:4px;">${varTag(varTotal)}</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);text-align:center;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Asistencia</div>
+          <div style="font-size:28px;font-weight:900;color:var(--success);">${tasa}%</div>
+          <div style="margin-top:4px;">${varTag(varTasa)}</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);text-align:center;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Ventas</div>
+          <div style="font-size:28px;font-weight:900;color:var(--warning);">${ventas}</div>
+          <div style="margin-top:4px;">${varTag(varVentas)}</div>
+        </div>
+      </div>
+
+      <!-- Embudo -->
+      <div class="card" style="margin-top:0;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Embudo del mes</div>
+        <div style="display:flex;justify-content:space-around;align-items:flex-end;gap:8px;">
+          ${[
+            {label:'Citas', val:total, color:'#1D3885', pct:100},
+            {label:'Llegaron', val:llegaron, color:'var(--success)', pct:total>0?Math.round(llegaron/total*100):0},
+            {label:'No llegaron', val:noLlegaron, color:'var(--error)', pct:total>0?Math.round(noLlegaron/total*100):0},
+            {label:'Ventas', val:ventas, color:'var(--warning)', pct:total>0?Math.round(ventas/total*100):0},
+          ].map(f=>`
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:18px;font-weight:900;color:${f.color};">${f.val}</div>
+              <div style="font-size:10px;color:var(--muted);margin:2px 0;">${f.label}</div>
+              <div style="font-size:11px;font-weight:700;color:${f.color};">${f.pct}%</div>
+            </div>`).join('<div style="color:var(--border);font-size:20px;">›</div>')}
+        </div>
+      </div>
+
+      <!-- Destacados -->
+      <div style="padding:4px 16px;margin-bottom:4px;">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Destacados del mes</div>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:0 16px 12px;">
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-top:3px solid var(--warning);">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">🏆 Mejor agencia</div>
+          <div style="font-weight:800;font-size:13px;line-height:1.3;">${mejorAgencia?esc(mejorAgencia[0]):'Sin datos'}</div>
+          ${mejorAgencia?`<div style="font-size:11px;color:var(--warning);margin-top:4px;font-weight:700;">${mejorAgencia[1].ventas} ventas</div>`:''}
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-top:3px solid var(--success);">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">⭐ Mejor asesor</div>
+          <div style="font-weight:800;font-size:13px;line-height:1.3;">${mejorAsesor?esc(mejorAsesor[0]):'Sin datos'}</div>
+          ${mejorAsesor?`<div style="font-size:11px;color:var(--success);margin-top:4px;font-weight:700;">${mejorAsesor[1].ventas} ventas · ${esc(mejorAsesor[1].agencia)}</div>`:''}
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-top:3px solid #8B5CF6;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">🚗 Auto más solicitado</div>
+          <div style="font-weight:800;font-size:13px;line-height:1.3;">${topVehiculo?esc(topVehiculo[0]):'Sin datos'}</div>
+          ${topVehiculo?`<div style="font-size:11px;color:#8B5CF6;margin-top:4px;font-weight:700;">${topVehiculo[1]} solicitudes</div>`:''}
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-top:3px solid #0891B2;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;">📅 Día más activo</div>
+          <div style="font-weight:800;font-size:13px;">${['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][maxDiaIdx]}</div>
+          <div style="font-size:11px;color:#0891B2;margin-top:4px;font-weight:700;">${porDia[maxDiaIdx]} citas</div>
+        </div>
+      </div>
+
+      <!-- Por agencia completo -->
+      <div style="padding:4px 16px;margin-bottom:4px;">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Resultados por agencia</div>
+      </div>
+      <div style="padding:0 16px 24px;">
+        ${agenciasOrdenadas.map(([ag,d])=>{
+          const t=d.total; const tasa=t>0?Math.round(d.llegaron/t*100):0;
+          const tasaV=t>0?Math.round(d.ventas/t*100):0;
+          return `<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${BRAND_COLS[d.marca]||'var(--brand)'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="font-weight:700;font-size:13px;">${esc(ag)}</div>
+              <div style="display:flex;gap:4px;">
+                <span style="background:#DCFCE7;color:var(--success);border-radius:20px;padding:2px 7px;font-size:10px;font-weight:700;">${tasa}%</span>
+                <span style="background:#FEF3C7;color:var(--warning);border-radius:20px;padding:2px 7px;font-size:10px;font-weight:700;">🏆${d.ventas}</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;text-align:center;font-size:11px;">
+              <div><div style="font-weight:800;font-size:16px;">${t}</div><div style="color:var(--muted)">Citas</div></div>
+              <div><div style="font-weight:800;font-size:16px;color:var(--success)">${d.llegaron}</div><div style="color:var(--muted)">Llegaron</div></div>
+              <div><div style="font-weight:800;font-size:16px;color:var(--warning)">${d.ventas}</div><div style="color:var(--muted)">Ventas</div></div>
+            </div>
+          </div>`;
+        }).join('') || '<div class="empty">Sin datos este mes</div>'}
+      </div>
+    `;
+  } catch(e) {
+    $('rmContenido').innerHTML = '<div class="empty">Error cargando datos: '+e.message+'</div>';
+  }
+}
+
+function descargarResumen() {
+  const contenido = $('rmContenido');
+  if(!contenido || !window._rmData) { alert('Genera el resumen primero'); return; }
+  const d = window._rmData;
+
+  const ventana = window.open('', '_blank');
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Resumen ${d.mes} ${d.anio} — Z Motors</title>
+      <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:-apple-system,sans-serif; background:#F1F5FB; color:#1A2340; }
+        .container { max-width:600px; margin:0 auto; padding:24px; }
+        .header { background:linear-gradient(135deg,#1D3885,#2D4FA0); color:#fff; padding:24px; border-radius:12px; margin-bottom:20px; }
+        .header h1 { font-size:28px; font-weight:900; }
+        .header p { opacity:.7; font-size:13px; margin-top:4px; }
+        .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+        .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
+        .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+        .kpi { text-align:center; }
+        .kpi .val { font-size:32px; font-weight:900; }
+        .kpi .label { font-size:11px; color:#64748B; text-transform:uppercase; font-weight:700; letter-spacing:.4px; margin-bottom:4px; }
+        .kpi .var { font-size:12px; margin-top:4px; }
+        .section-title { font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+        .ag-item { background:#fff; border-radius:10px; padding:12px 14px; margin-bottom:8px; border-left:4px solid #1D3885; }
+        .ag-name { font-weight:700; font-size:14px; margin-bottom:6px; }
+        .ag-stats { display:flex; gap:16px; font-size:13px; color:#64748B; }
+        .ag-stats strong { color:#1A2340; }
+        .dest { border-top:3px solid #D97706; }
+        .dest .dest-label { font-size:10px; color:#64748B; font-weight:700; text-transform:uppercase; margin-bottom:6px; }
+        .dest .dest-val { font-weight:800; font-size:14px; }
+        .dest .dest-sub { font-size:12px; color:#D97706; margin-top:4px; font-weight:700; }
+        @media print { body { background:#fff; } .container { padding:12px; } }
+      </style>
+    </head>
+    <body>
+    <div class="container">
+      <div class="header">
+        <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Reporte Mensual</div>
+        <h1>${d.mes} ${d.anio}</h1>
+        <p>Z Motors Intelligence Platform</p>
+      </div>
+
+      <div class="section-title">Métricas clave</div>
+      <div class="grid3">
+        <div class="card kpi">
+          <div class="label">Citas</div>
+          <div class="val" style="color:#1D3885">${d.total}</div>
+          <div class="var" style="color:${d.varTotal>=0?'#16A34A':'#DC2626'}">${d.varTotal>=0?'▲ +':'▼ '}${d.varTotal}% vs mes ant.</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">Asistencia</div>
+          <div class="val" style="color:#16A34A">${d.tasa}%</div>
+          <div class="var" style="color:${d.varTasa>=0?'#16A34A':'#DC2626'}">${d.varTasa>=0?'▲ +':'▼ '}${d.varTasa}% vs mes ant.</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">Ventas</div>
+          <div class="val" style="color:#D97706">${d.ventas}</div>
+          <div class="var" style="color:${d.varVentas>=0?'#16A34A':'#DC2626'}">${d.varVentas>=0?'▲ +':'▼ '}${d.varVentas}% vs mes ant.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Destacados</div>
+      <div class="grid2" style="margin-bottom:20px;">
+        <div class="card dest">
+          <div class="dest-label">🏆 Mejor agencia</div>
+          <div class="dest-val">${d.mejorAgencia?d.mejorAgencia[0]:'Sin datos'}</div>
+          ${d.mejorAgencia?`<div class="dest-sub">${d.mejorAgencia[1].ventas} ventas</div>`:''}
+        </div>
+        <div class="card dest" style="border-top-color:#16A34A;">
+          <div class="dest-label">⭐ Mejor asesor</div>
+          <div class="dest-val">${d.mejorAsesor?d.mejorAsesor[0]:'Sin datos'}</div>
+          ${d.mejorAsesor?`<div class="dest-sub" style="color:#16A34A">${d.mejorAsesor[1].ventas} ventas</div>`:''}
+        </div>
+        <div class="card dest" style="border-top-color:#8B5CF6;">
+          <div class="dest-label">🚗 Auto más solicitado</div>
+          <div class="dest-val">${d.topVehiculo?d.topVehiculo[0]:'Sin datos'}</div>
+          ${d.topVehiculo?`<div class="dest-sub" style="color:#8B5CF6">${d.topVehiculo[1]} solicitudes</div>`:''}
+        </div>
+        <div class="card dest" style="border-top-color:#1D3885;">
+          <div class="dest-label">📊 Conversión total</div>
+          <div class="dest-val">${d.tasaVenta}%</div>
+          <div class="dest-sub" style="color:#1D3885">leads → ventas</div>
+        </div>
+      </div>
+
+      <div class="section-title">Resultados por agencia</div>
+      ${d.agenciasOrdenadas.map(([ag,a])=>`
+        <div class="ag-item">
+          <div class="ag-name">${ag}</div>
+          <div class="ag-stats">
+            <span>Citas: <strong>${a.total}</strong></span>
+            <span>Llegaron: <strong>${a.llegaron}</strong></span>
+            <span>Ventas: <strong>${a.ventas}</strong></span>
+            <span>Asist: <strong>${a.total>0?Math.round(a.llegaron/a.total*100):0}%</strong></span>
+          </div>
+        </div>`).join('')}
+
+      <div style="text-align:center;color:#64748B;font-size:11px;margin-top:20px;padding-top:16px;border-top:1px solid #D0D9EC;">
+        Generado por Z Motors Intelligence Platform · ${new Date().toLocaleDateString('es-MX')}
+      </div>
+    </div>
+    <script>window.onload=()=>window.print();</script>
+    </body></html>
+  `);
+  ventana.document.close();
+}
+
+// Setup resumen mensual when navigating to it
+const _origGoTo = goTo;
+function goTo(screen) {
+  if(screen !== 'scanner' && scannerActive) stopScanner();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = $('screen-' + screen);
+  if(el) el.classList.add('active');
+  window.scrollTo(0, 0);
+  if(screen === 'llegadas') cargarLlegadas();
+  if(screen === 'admin') cargarAdmin();
+  if(screen === 'resumen-mensual') setupResumenMensual();
 }
 
 </script>

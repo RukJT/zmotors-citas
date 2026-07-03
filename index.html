@@ -807,6 +807,177 @@
   <button type="button" class="btn btn-primary btn-mt" onclick="guardarReagenda()" style="width:100%;margin:16px 0 0;">Guardar reagenda</button>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: ADMIN DASHBOARD (dueño)
+══════════════════════════════════════════════════════ -->
+<div id="screen-admin-dash" class="screen">
+  <div class="navbar" id="adminDashNavbar">
+    <div class="navbar-title">Panel General</div>
+    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
+  </div>
+
+  <!-- Hero con logo Z Motors -->
+  <div class="hero" style="padding:24px 20px 20px;">
+    <div class="brand-logo no-img" style="width:56px;height:56px;font-size:22px;margin-bottom:12px;">Z</div>
+    <h1 style="font-size:20px;">Dashboard General</h1>
+    <p id="adminDashFecha" style="font-size:13px;opacity:.8;"></p>
+  </div>
+
+  <!-- Filtro de fecha -->
+  <div style="padding:12px 16px 0;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="adminFiltroFecha" class="form-input" style="flex:1;">
+      <button type="button" class="btn btn-primary" onclick="cargarAdminDash()" style="width:auto;margin:0;padding:12px 16px;white-space:nowrap;">Buscar</button>
+    </div>
+  </div>
+
+  <!-- KPIs Globales -->
+  <div style="padding:12px 16px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Resumen del día</div>
+  </div>
+  <div class="kpi-strip" style="padding-top:0;">
+    <div class="kpi-box"><div class="kpi-label">Total citas</div><div class="kpi-value" id="adKpiTotal">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="adKpiLlegaron" style="color:var(--success)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="adKpiNo" style="color:var(--error)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="adKpiVentas" style="color:var(--warning)">0</div></div>
+  </div>
+
+  <!-- Tasa global -->
+  <div class="card" style="margin-top:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Tasa de asistencia global</div>
+        <div style="font-size:32px;font-weight:900;color:var(--brand);" id="adTasa">0%</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:12px;color:var(--muted);">Conversión a venta</div>
+        <div style="font-size:24px;font-weight:800;color:var(--warning);" id="adConversion">0%</div>
+      </div>
+    </div>
+    <!-- Progress bar -->
+    <div style="background:var(--border);border-radius:99px;height:8px;margin-top:12px;overflow:hidden;">
+      <div id="adProgressBar" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+    </div>
+  </div>
+
+  <!-- Por marca -->
+  <div style="padding:0 16px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Por marca</div>
+  </div>
+  <div id="adPorMarca" style="padding:0 16px 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;"></div>
+
+  <!-- Por agencia -->
+  <div style="padding:8px 16px 0;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Desempeño por agencia</div>
+  </div>
+  <div id="adPorAgencia" style="padding:0 16px 24px;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: GERENTE DE AGENCIA
+══════════════════════════════════════════════════════ -->
+<div id="screen-gerente-agencia" class="screen">
+  <div class="navbar">
+    <div class="navbar-title" id="gaTitle">Mi Agencia</div>
+    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
+  </div>
+
+  <div class="hero" id="gaHero" style="padding:20px;">
+    <div class="brand-logo no-img" id="gaLogoBox">Z</div>
+    <h1 id="gaAgenciaNombre" style="font-size:18px;margin-top:8px;">Mi Agencia</h1>
+    <p id="gaUserNombre" style="font-size:13px;opacity:.8;"></p>
+  </div>
+
+  <!-- Filtro fecha -->
+  <div style="padding:12px 16px 0;display:flex;gap:8px;">
+    <input type="date" id="gaFiltroFecha" class="form-input" style="flex:1;">
+    <button type="button" class="btn btn-primary" onclick="cargarGerenteAgencia()" style="width:auto;margin:0;padding:12px 16px;">Buscar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip">
+    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gaKpiTotal">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gaKpiLlegaron" style="color:var(--success)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gaKpiNo" style="color:var(--error)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gaKpiVentas" style="color:var(--warning)">0</div></div>
+  </div>
+
+  <!-- Tasa -->
+  <div class="card" style="margin-top:0;">
+    <div style="display:flex;justify-content:space-between;">
+      <div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;">Tasa de asistencia</div>
+        <div style="font-size:28px;font-weight:900;color:var(--brand);" id="gaTasa">0%</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:12px;color:var(--muted);">Conv. a venta</div>
+        <div style="font-size:22px;font-weight:800;color:var(--warning);" id="gaConversion">0%</div>
+      </div>
+    </div>
+    <div style="background:var(--border);border-radius:99px;height:8px;margin-top:10px;overflow:hidden;">
+      <div id="gaProgressBar" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s;"></div>
+    </div>
+  </div>
+
+  <!-- Por asesor -->
+  <div style="padding:0 16px 4px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por asesor</div>
+  </div>
+  <div id="gaPorAsesor" style="padding:0 16px 16px;"></div>
+
+  <!-- Lista de citas -->
+  <div style="padding:0 16px 4px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Citas del día</div>
+  </div>
+  <div id="gaCitas" style="padding:0 0 24px;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN: GERENTE DE ÁREA
+══════════════════════════════════════════════════════ -->
+<div id="screen-gerente-area" class="screen">
+  <div class="navbar">
+    <div class="navbar-title" id="gAreaTitle">Mi Área</div>
+    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
+  </div>
+
+  <div class="hero" style="padding:20px;">
+    <div class="brand-logo no-img">Z</div>
+    <h1 id="gAreaNombre" style="font-size:18px;margin-top:8px;">Mi Área</h1>
+    <p id="gAreaUserNombre" style="font-size:13px;opacity:.8;"></p>
+  </div>
+
+  <!-- Filtro -->
+  <div style="padding:12px 16px 0;display:flex;gap:8px;">
+    <input type="date" id="gAreaFecha" class="form-input" style="flex:1;">
+    <button type="button" class="btn btn-primary" onclick="cargarGerenteArea()" style="width:auto;margin:0;padding:12px 16px;">Buscar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip">
+    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gAreaKpiTotal">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gAreaKpiLlegaron" style="color:var(--success)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gAreaKpiNo" style="color:var(--error)">0</div></div>
+    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gAreaKpiVentas" style="color:var(--warning)">0</div></div>
+  </div>
+
+  <!-- Por agencia del área -->
+  <div style="padding:0 16px 4px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por agencia</div>
+  </div>
+  <div id="gAreaPorAgencia" style="padding:0 16px 16px;"></div>
+
+  <!-- Leads (placeholder para Kommo) -->
+  <div class="card" style="border:2px dashed var(--border);background:var(--bg);">
+    <div style="text-align:center;padding:8px;">
+      <div style="font-size:28px;">🔗</div>
+      <div style="font-weight:700;color:var(--muted);margin-top:6px;font-size:14px;">Leads desde Kommo</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Disponible cuando se integre Kommo CRM</div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /container -->
 
 <script>
@@ -1540,8 +1711,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = JSON.parse(saved);
       currentAgencia = currentUser.agencia;
       Promise.all([cargarVendedores(), cargarVehiculos()]).then(()=>{
-        setupHome();
-        goTo('home');
+        routeByRole();
       });
     } catch(e) { sessionStorage.removeItem('zm_citas_user'); }
   }
@@ -1566,8 +1736,7 @@ async function doLogin() {
     sessionStorage.setItem('zm_citas_user', JSON.stringify(currentUser));
     await cargarVendedores();
     await cargarVehiculos();
-    setupHome();
-    goTo('home');
+    routeByRole();
   } catch(e) { showAlert('loginError','error','Error de conexión', e.message); }
 }
 
@@ -1580,6 +1749,287 @@ function doLogout() {
   document.documentElement.style.removeProperty('--brand-accent');
   goTo('login');
 }
+
+// ════════════════════════════════════════════════════════
+// ROLE-BASED ROUTING
+// ════════════════════════════════════════════════════════
+function routeByRole() {
+  const rol = currentUser?.rol;
+  if(rol === 'admin') {
+    setupAdminDash();
+    goTo('admin-dash');
+  } else if(rol === 'gerente_agencia') {
+    setupGerenteAgencia();
+    goTo('gerente-agencia');
+  } else if(rol === 'gerente_area') {
+    setupGerenteArea();
+    goTo('gerente-area');
+  } else {
+    // piso
+    setupHome();
+    goTo('home');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ════════════════════════════════════════════════════════
+const BRAND_NAMES = { vw:'Volkswagen', audi:'Audi', seat:'SEAT', cupra:'CUPRA', geely:'Geely' };
+const BRAND_COLS  = { vw:'#001E50', audi:'#BB0A21', seat:'#1A1A1A', cupra:'#222222', geely:'#003087' };
+
+function setupAdminDash() {
+  const hoy = new Date().toISOString().split('T')[0];
+  $('adminFiltroFecha').value = hoy;
+  $('adminDashFecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  cargarAdminDash();
+}
+
+async function cargarAdminDash() {
+  const fechaStr = $('adminFiltroFecha').value;
+  if(!fechaStr) return;
+  const fechaDate = parseFecha(fechaStr);
+  const man = new Date(fechaDate); man.setDate(man.getDate()+1);
+  try {
+    const snap = await db.collection('citas_agencia')
+      .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+    const citas = snap.docs.map(d=>d.data());
+
+    const total = citas.length;
+    const llegaron = citas.filter(c=>c.asistio==='Si').length;
+    const noLlegaron = citas.filter(c=>c.asistio==='No').length;
+    const ventas = citas.filter(c=>c.asistio==='Venta').length;
+    const tasa = total>0?Math.round(llegaron/total*100):0;
+    const conv = total>0?Math.round(ventas/total*100):0;
+
+    $('adKpiTotal').textContent = total;
+    $('adKpiLlegaron').textContent = llegaron;
+    $('adKpiNo').textContent = noLlegaron;
+    $('adKpiVentas').textContent = ventas;
+    $('adTasa').textContent = tasa+'%';
+    $('adConversion').textContent = conv+'%';
+    $('adProgressBar').style.width = tasa+'%';
+
+    // Por marca
+    const porMarca = {};
+    citas.forEach(c => {
+      const m = c.agenciaMarca||'otro';
+      if(!porMarca[m]) porMarca[m]={total:0,llegaron:0,ventas:0};
+      porMarca[m].total++;
+      if(c.asistio==='Si') porMarca[m].llegaron++;
+      if(c.asistio==='Venta') porMarca[m].ventas++;
+    });
+    $('adPorMarca').innerHTML = Object.entries(porMarca).map(([m,d])=>`
+      <div style="background:#fff;border-radius:10px;padding:14px;border-top:4px solid ${BRAND_COLS[m]||'#ccc'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">${esc(BRAND_NAMES[m]||m.toUpperCase())}</div>
+        <div style="font-size:22px;font-weight:900;color:${BRAND_COLS[m]||'#333'}">${d.total}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+          ✅ ${d.llegaron} llegaron · 🏆 ${d.ventas} ventas
+        </div>
+      </div>`).join('') || '<div class="empty">Sin citas</div>';
+
+    // Por agencia
+    const porAgencia = {};
+    citas.forEach(c => {
+      const a = c.agencia||'Sin agencia';
+      if(!porAgencia[a]) porAgencia[a]={total:0,llegaron:0,no:0,ventas:0,marca:c.agenciaMarca||''};
+      porAgencia[a].total++;
+      if(c.asistio==='Si') porAgencia[a].llegaron++;
+      if(c.asistio==='No') porAgencia[a].no++;
+      if(c.asistio==='Venta') porAgencia[a].ventas++;
+    });
+    $('adPorAgencia').innerHTML = Object.entries(porAgencia)
+      .sort((a,b)=>b[1].total-a[1].total)
+      .map(([ag,d])=>{
+        const t=d.total; const tasa=t>0?Math.round(d.llegaron/t*100):0;
+        return `
+        <div style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:4px solid ${BRAND_COLS[d.marca]||'var(--brand)'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:14px;">${esc(ag)}</div>
+            <span style="background:var(--bg);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--brand);">${tasa}% asist.</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px;text-align:center;">
+            <div><div style="font-weight:800;font-size:16px;">${t}</div><div style="color:var(--muted)">Total</div></div>
+            <div><div style="font-weight:800;font-size:16px;color:var(--success)">${d.llegaron}</div><div style="color:var(--muted)">Llegaron</div></div>
+            <div><div style="font-weight:800;font-size:16px;color:var(--error)">${d.no}</div><div style="color:var(--muted)">No llegaron</div></div>
+            <div><div style="font-weight:800;font-size:16px;color:var(--warning)">${d.ventas}</div><div style="color:var(--muted)">Ventas</div></div>
+          </div>
+          <div style="background:var(--border);border-radius:99px;height:6px;margin-top:10px;overflow:hidden;">
+            <div style="height:100%;background:var(--success);border-radius:99px;width:${tasa}%;"></div>
+          </div>
+        </div>`;
+      }).join('') || '<div class="empty">Sin citas para esta fecha</div>';
+  } catch(e) { console.error(e); }
+}
+
+// ════════════════════════════════════════════════════════
+// GERENTE DE AGENCIA
+// ════════════════════════════════════════════════════════
+function setupGerenteAgencia() {
+  const marca = currentUser.agenciaMarca||null;
+  setBrandTheme(marca);
+  setLogo('gaLogoBox', marca);
+  $('gaTitle').textContent = currentUser.agencia||'Mi Agencia';
+  $('gaAgenciaNombre').textContent = currentUser.agencia||'Mi Agencia';
+  $('gaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  const hoy = new Date().toISOString().split('T')[0];
+  $('gaFiltroFecha').value = hoy;
+  cargarGerenteAgencia();
+}
+
+async function cargarGerenteAgencia() {
+  const fechaStr = $('gaFiltroFecha').value;
+  if(!fechaStr) return;
+  const fechaDate = parseFecha(fechaStr);
+  const man = new Date(fechaDate); man.setDate(man.getDate()+1);
+  try {
+    const snap = await db.collection('citas_agencia')
+      .where('agencia','==', currentAgencia)
+      .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+    const citas = snap.docs.map(d=>({docId:d.id,...d.data()}));
+
+    const total=citas.length;
+    const llegaron=citas.filter(c=>c.asistio==='Si').length;
+    const no=citas.filter(c=>c.asistio==='No').length;
+    const ventas=citas.filter(c=>c.asistio==='Venta').length;
+    const tasa=total>0?Math.round(llegaron/total*100):0;
+    const conv=total>0?Math.round(ventas/total*100):0;
+
+    $('gaKpiTotal').textContent=total;
+    $('gaKpiLlegaron').textContent=llegaron;
+    $('gaKpiNo').textContent=no;
+    $('gaKpiVentas').textContent=ventas;
+    $('gaTasa').textContent=tasa+'%';
+    $('gaConversion').textContent=conv+'%';
+    $('gaProgressBar').style.width=tasa+'%';
+
+    // Por asesor
+    const porAsesor={};
+    citas.forEach(c=>{
+      const a=c.asesor||'Sin asignar';
+      if(!porAsesor[a]) porAsesor[a]={total:0,llegaron:0,ventas:0};
+      porAsesor[a].total++;
+      if(c.asistio==='Si') porAsesor[a].llegaron++;
+      if(c.asistio==='Venta') porAsesor[a].ventas++;
+    });
+    $('gaPorAsesor').innerHTML=Object.entries(porAsesor)
+      .sort((a,b)=>b[1].total-a[1].total)
+      .map(([nombre,d])=>`
+        <div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:700;font-size:14px;">${esc(nombre)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">✅ ${d.llegaron} · 🏆 ${d.ventas} ventas</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:22px;font-weight:900;color:var(--brand);">${d.total}</div>
+            <div style="font-size:11px;color:var(--muted);">citas</div>
+          </div>
+        </div>`).join('') || '<div class="empty">Sin datos</div>';
+
+    // Lista citas
+    citasHoy = citas;
+    $('gaCitas').innerHTML = citas.length ? citas
+      .sort((a,b)=>(a.horaCita||'').localeCompare(b.horaCita||''))
+      .map(c=>`
+        <div class="cita-card ${c.asistio==='Si'?'llegó':c.asistio==='No'?'no-llegó':c.asistio==='Venta'?'venta':''}">
+          <div class="cita-top">
+            <div><div class="cita-name">${esc(c.nombre)}</div><div class="cita-time">⏰ ${esc(c.horaCita)} · ${esc(c.asesor)}</div></div>
+            <span class="badge ${badgeClass(c.asistio)}">${badgeText(c.asistio)}</span>
+          </div>
+          <div class="cita-details">🚗 ${esc(c.vehiculo)}</div>
+          <div class="cita-actions">
+            <button type="button" class="btn btn-success btn-sm" onclick="marcarGA('${c.docId}','Si')">Llegó</button>
+            <button type="button" class="btn btn-error btn-sm" onclick="marcarGA('${c.docId}','No')">No llegó</button>
+            <button type="button" class="btn btn-warning btn-sm" onclick="marcarGA('${c.docId}','Venta')">Venta</button>
+          </div>
+        </div>`).join('')
+      : '<div class="empty"><div class="empty-icon">📭</div>Sin citas</div>';
+  } catch(e) { console.error(e); }
+}
+
+async function marcarGA(docId, estado) {
+  try {
+    await db.collection('citas_agencia').doc(docId).update({
+      asistio: estado, fechaCheckin: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await cargarGerenteAgencia();
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+// ════════════════════════════════════════════════════════
+// GERENTE DE ÁREA
+// ════════════════════════════════════════════════════════
+function setupGerenteArea() {
+  $('gAreaTitle').textContent = currentUser.area||'Mi Área';
+  $('gAreaNombre').textContent = currentUser.area||'Mi Área';
+  $('gAreaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  const hoy = new Date().toISOString().split('T')[0];
+  $('gAreaFecha').value = hoy;
+  cargarGerenteArea();
+}
+
+async function cargarGerenteArea() {
+  const fechaStr = $('gAreaFecha').value;
+  if(!fechaStr) return;
+  const fechaDate = parseFecha(fechaStr);
+  const man = new Date(fechaDate); man.setDate(man.getDate()+1);
+  try {
+    // Get all agencies for this area
+    const agSnap = await db.collection('agencias_citas').where('area','==', currentUser.area||'').get();
+    const agencias = agSnap.docs.map(d=>d.data().nombre);
+
+    // Get citas for those agencies
+    let citas = [];
+    for(const ag of agencias) {
+      const snap = await db.collection('citas_agencia')
+        .where('agencia','==',ag)
+        .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+      citas.push(...snap.docs.map(d=>d.data()));
+    }
+
+    // If no area-specific agencies, get all
+    if(!agencias.length) {
+      const snap = await db.collection('citas_agencia')
+        .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+      citas = snap.docs.map(d=>d.data());
+    }
+
+    const total=citas.length;
+    const llegaron=citas.filter(c=>c.asistio==='Si').length;
+    const no=citas.filter(c=>c.asistio==='No').length;
+    const ventas=citas.filter(c=>c.asistio==='Venta').length;
+
+    $('gAreaKpiTotal').textContent=total;
+    $('gAreaKpiLlegaron').textContent=llegaron;
+    $('gAreaKpiNo').textContent=no;
+    $('gAreaKpiVentas').textContent=ventas;
+
+    // Por agencia
+    const porAg={};
+    citas.forEach(c=>{
+      const a=c.agencia||'Sin agencia';
+      if(!porAg[a]) porAg[a]={total:0,llegaron:0,ventas:0,marca:c.agenciaMarca||''};
+      porAg[a].total++;
+      if(c.asistio==='Si') porAg[a].llegaron++;
+      if(c.asistio==='Venta') porAg[a].ventas++;
+    });
+    $('gAreaPorAgencia').innerHTML=Object.entries(porAg)
+      .sort((a,b)=>b[1].total-a[1].total)
+      .map(([ag,d])=>{
+        const tasa=d.total>0?Math.round(d.llegaron/d.total*100):0;
+        return `
+        <div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:4px solid ${BRAND_COLS[d.marca]||'var(--brand)'};box-shadow:0 2px 6px rgba(0,0,0,.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:700;font-size:14px;">${esc(ag)}</div>
+            <span style="font-size:12px;font-weight:700;color:var(--brand);">${tasa}%</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            Total: ${d.total} · ✅ ${d.llegaron} · 🏆 ${d.ventas}
+          </div>
+        </div>`;
+      }).join('') || '<div class="empty">Sin datos</div>';
+  } catch(e) { console.error(e); }
+}
+
 </script>
 </body>
 </html>

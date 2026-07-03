@@ -734,6 +734,7 @@
           <option value="seat">SEAT</option>
           <option value="cupra">CUPRA</option>
           <option value="geely">Geely</option>
+          <option value="omoda">Omoda</option>
         </select>
       </div>
       <button type="button" class="btn btn-success" onclick="crearAgencia()" style="width:100%;margin:0;">Agregar agencia</button>
@@ -1777,8 +1778,8 @@ function routeByRole() {
 // ════════════════════════════════════════════════════════
 // ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════
-const BRAND_NAMES = { vw:'Volkswagen', audi:'Audi', seat:'SEAT', cupra:'CUPRA', geely:'Geely' };
-const BRAND_COLS  = { vw:'#001E50', audi:'#BB0A21', seat:'#1A1A1A', cupra:'#222222', geely:'#003087' };
+const BRAND_NAMES = { vw:'Volkswagen', audi:'Audi', seat:'SEAT', cupra:'CUPRA', geely:'Geely', omoda:'Omoda' };
+const BRAND_COLS  = { vw:'#001E50', audi:'#BB0A21', seat:'#1A1A1A', cupra:'#222222', geely:'#003087', omoda:'#CC0000' };
 
 function setupAdminDash() {
   const hoy = new Date().toISOString().split('T')[0];

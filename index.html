@@ -804,6 +804,115 @@
         </div>
       </div>
 
+      <!-- ══ SCREEN: ESTADÍSTICAS DE LEADS ══ -->
+      <div id="screen-leads-stats" class="screen">
+        <!-- Filtros -->
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+              <label class="form-label">Período</label>
+              <select id="leadsFiltroPeriodo" class="form-select" onchange="cambiarPeriodoLeads(this.value)">
+                <option value="dia">Hoy</option>
+                <option value="semana">Esta semana</option>
+                <option value="mes" selected>Este mes</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;" id="leadsDesdeWrap" style="display:none;">
+              <label class="form-label">Desde</label>
+              <input type="date" id="leadsDesde" class="form-input">
+            </div>
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;" id="leadsHastaWrap" style="display:none;">
+              <label class="form-label">Hasta</label>
+              <input type="date" id="leadsHasta" class="form-input">
+            </div>
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;" id="leadsAgenciaWrap">
+              <label class="form-label">Agencia</label>
+              <select id="leadsAgenciaFiltro" class="form-select">
+                <option value="">Todas las agencias</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="cargarLeadsStats()">Buscar</button>
+          </div>
+        </div>
+
+        <!-- Banner Kommo pendiente -->
+        <div id="leadsKommoBanner" class="card" style="border:2px dashed #0070C0;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);display:none;">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:36px;">🔗</div>
+            <div>
+              <div style="font-weight:800;font-size:16px;color:#1E40AF;">Integración con Kommo CRM pendiente</div>
+              <div style="font-size:13px;color:#3B82F6;margin-top:4px;">Los datos de leads aparecerán aquí automáticamente cuando se conecte Kommo. La estructura ya está lista.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs de leads -->
+        <div class="kpi-grid" id="leadsKpiGrid">
+          <div class="kpi-box">
+            <div class="kpi-label">Total leads</div>
+            <div class="kpi-value" id="lKpiTotal" style="color:#1D3885">0</div>
+            <div class="kpi-sub" id="lKpiTotalSub"></div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Contactados</div>
+            <div class="kpi-value" id="lKpiContactados" style="color:var(--success)">0</div>
+            <div class="kpi-sub" id="lKpiContactadosPct"></div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Citas agendadas</div>
+            <div class="kpi-value" id="lKpiCitas" style="color:var(--warning)">0</div>
+            <div class="kpi-sub" id="lKpiCitasPct"></div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Sin contactar</div>
+            <div class="kpi-value" id="lKpiSinContactar" style="color:var(--error)">0</div>
+            <div class="kpi-sub" id="lKpiSinContactarPct"></div>
+          </div>
+        </div>
+
+        <!-- Gráficas principales -->
+        <div class="grid-2">
+          <!-- Por estatus -->
+          <div class="card">
+            <div class="card-title">Distribución por estatus</div>
+            <div id="leadsEstatus"></div>
+          </div>
+          <!-- Por fuente -->
+          <div class="card">
+            <div class="card-title">Fuente de leads</div>
+            <div id="leadsFuentes"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Por agencia -->
+          <div class="card">
+            <div class="card-title">Leads por agencia</div>
+            <div id="leadsPorAgencia"></div>
+          </div>
+          <!-- Por asesor -->
+          <div class="card">
+            <div class="card-title">Leads por asesor</div>
+            <div id="leadsPorAsesor"></div>
+          </div>
+        </div>
+
+        <!-- Modelos más solicitados -->
+        <div class="card">
+          <div class="card-title">Modelos más solicitados</div>
+          <div id="leadsModelos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;"></div>
+        </div>
+
+        <!-- Tendencia por día -->
+        <div class="card">
+          <div class="card-title">Tendencia de leads</div>
+          <div id="leadsTendencia" style="display:flex;gap:4px;align-items:flex-end;height:120px;overflow-x:auto;padding-bottom:4px;"></div>
+          <div id="leadsTendenciaLabels" style="display:flex;gap:4px;margin-top:6px;overflow-x:auto;"></div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: RESUMEN MENSUAL ══ -->
       <!-- ══ SCREEN: RESUMEN MENSUAL ══ -->
       <div id="screen-resumen-mensual" class="screen">
         <div class="card">
@@ -2320,16 +2429,19 @@ const ROLE_LABELS = {
 const ROLE_NAV = {
   admin: [
     {icon:'📊', label:'Dashboard', screen:'admin-dash'},
+    {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'📆', label:'Resumen mensual', screen:'resumen-mensual'},
     {icon:'⚙️', label:'Configuración', screen:'admin'},
   ],
   gerente_agencia: [
     {icon:'📊', label:'Mi agencia', screen:'gerente-agencia'},
+    {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
     {icon:'📋', label:'Corte del día', screen:'corte'},
   ],
   gerente_area: [
     {icon:'📊', label:'Mi área', screen:'gerente-area'},
+    {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
   ],
   piso: [
@@ -2393,6 +2505,7 @@ function goTo(screen) {
   if(screen==='admin-dash') setupAdminDash();
   if(screen==='gerente-agencia') setupGerenteAgencia();
   if(screen==='gerente-area') setupGerenteArea();
+  if(screen==='leads-stats') setupLeadsStats();
 }
 
 // Override routeByRole to show app layout
@@ -2417,6 +2530,195 @@ function doLogout() {
   document.documentElement.style.removeProperty('--brand');
   document.documentElement.style.removeProperty('--brand-accent');
 }
+
+// ════════════════════════════════════════════════════════
+// ESTADÍSTICAS DE LEADS
+// ════════════════════════════════════════════════════════
+const ESTATUS_COLORS = {
+  'Nuevo': '#1D3885', 'Contactado': '#0891B2', 'Cita agendada': '#D97706',
+  'No contesta': '#DC2626', 'Sin interés': '#64748B', 'Venta': '#16A34A',
+  'Seguimiento': '#7C3AED', 'Descalificado': '#9CA3AF'
+};
+const FUENTE_COLORS = {
+  'Facebook': '#1877F2', 'Instagram': '#E1306C', 'WhatsApp': '#25D366',
+  'Web': '#0EA5E9', 'Llamada': '#F97316', 'Referido': '#8B5CF6', 'Otro': '#64748B'
+};
+
+let leadsData = [];
+let leadsAgencias = [];
+
+async function setupLeadsStats() {
+  // Load agencies for filter
+  try {
+    const snap = await db.collection('agencias_citas').get();
+    leadsAgencias = snap.docs.map(d=>d.data().nombre);
+    const sel = $('leadsAgenciaFiltro');
+    if(sel) {
+      sel.innerHTML = '<option value="">Todas las agencias</option>';
+      // Filter by user role
+      const agenciasVis = currentUser?.rol==='gerente_agencia'
+        ? [currentUser.agencia]
+        : currentUser?.rol==='gerente_area'
+        ? leadsAgencias // will filter by area later
+        : leadsAgencias;
+      agenciasVis.forEach(a=>{
+        const o=document.createElement('option');
+        o.value=a; o.textContent=a; sel.appendChild(o);
+      });
+      // Hide agency filter for gerente_agencia (only sees their own)
+      if(currentUser?.rol==='gerente_agencia') {
+        $('leadsAgenciaWrap').style.display='none';
+        sel.value = currentUser.agencia;
+      }
+    }
+  } catch(e) { console.error(e); }
+  cargarLeadsStats();
+}
+
+function cambiarPeriodoLeads(p) {
+  const show = p==='custom';
+  $('leadsDesdeWrap').style.display = show?'block':'none';
+  $('leadsHastaWrap').style.display = show?'block':'none';
+  if(!show) cargarLeadsStats();
+}
+
+function getLeadsRango() {
+  const p = $('leadsFiltroPeriodo')?.value||'mes';
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if(p==='dia') { const m=new Date(hoy); m.setDate(m.getDate()+1); return {desde:hoy,hasta:m}; }
+  if(p==='semana') { const l=new Date(hoy); l.setDate(l.getDate()-l.getDay()+1); const d=new Date(l); d.setDate(d.getDate()+7); return {desde:l,hasta:d}; }
+  if(p==='mes') { return {desde:new Date(hoy.getFullYear(),hoy.getMonth(),1), hasta:new Date(hoy.getFullYear(),hoy.getMonth()+1,1)}; }
+  const d=parseFecha($('leadsDesde')?.value)||hoy;
+  const h=parseFecha($('leadsHasta')?.value)||hoy; h.setDate(h.getDate()+1);
+  return {desde:d,hasta:h};
+}
+
+async function cargarLeadsStats() {
+  const {desde,hasta} = getLeadsRango();
+  const agenciaFiltro = $('leadsAgenciaFiltro')?.value||'';
+
+  try {
+    // Try to load from leads_kommo collection
+    let q = db.collection('leads_kommo')
+      .where('fechaCreacion','>=',desde)
+      .where('fechaCreacion','<',hasta);
+
+    const snap = await q.get().catch(()=>({docs:[]}));
+    leadsData = snap.docs.map(d=>d.data());
+
+    // Filter by agency if needed
+    if(agenciaFiltro) leadsData = leadsData.filter(l=>l.agencia===agenciaFiltro);
+    if(currentUser?.rol==='gerente_agencia') leadsData = leadsData.filter(l=>l.agencia===currentUser.agencia);
+
+    // Show Kommo banner if no data
+    const banner = $('leadsKommoBanner');
+    if(banner) banner.style.display = leadsData.length===0?'block':'none';
+
+    renderLeadsStats();
+  } catch(e) {
+    console.log('leads_kommo not available yet:', e.message);
+    // Show placeholder with sample structure
+    leadsData = [];
+    const banner = $('leadsKommoBanner');
+    if(banner) banner.style.display = 'block';
+    renderLeadsStats();
+  }
+}
+
+function renderLeadsStats() {
+  const total = leadsData.length;
+  const contactados = leadsData.filter(l=>l.estatus&&l.estatus!=='Nuevo'&&l.estatus!=='Sin contactar').length;
+  const citas = leadsData.filter(l=>l.estatus==='Cita agendada').length;
+  const sinContactar = leadsData.filter(l=>!l.estatus||l.estatus==='Nuevo'||l.estatus==='Sin contactar').length;
+
+  $('lKpiTotal').textContent = total;
+  $('lKpiContactados').textContent = contactados;
+  $('lKpiContactadosPct').textContent = total>0?Math.round(contactados/total*100)+'%':'—';
+  $('lKpiCitas').textContent = citas;
+  $('lKpiCitasPct').textContent = total>0?Math.round(citas/total*100)+'%':'—';
+  $('lKpiSinContactar').textContent = sinContactar;
+  $('lKpiSinContactarPct').textContent = total>0?Math.round(sinContactar/total*100)+'%':'—';
+
+  if(total===0) {
+    ['leadsEstatus','leadsFuentes','leadsPorAgencia','leadsPorAsesor','leadsModelos','leadsTendencia','leadsTendenciaLabels']
+      .forEach(id=>{ const el=$(id); if(el) el.innerHTML='<div class="empty">Sin datos — pendiente integración Kommo</div>'; });
+    return;
+  }
+
+  // Por estatus
+  const porEstatus={};
+  leadsData.forEach(l=>{ const e=l.estatus||'Sin estatus'; porEstatus[e]=(porEstatus[e]||0)+1; });
+  renderBarras('leadsEstatus', porEstatus, ESTATUS_COLORS, total);
+
+  // Por fuente
+  const porFuente={};
+  leadsData.forEach(l=>{ const f=l.fuente||'Sin fuente'; porFuente[f]=(porFuente[f]||0)+1; });
+  renderBarras('leadsFuentes', porFuente, FUENTE_COLORS, total);
+
+  // Por agencia
+  const porAg={};
+  leadsData.forEach(l=>{ const a=l.agencia||'Sin agencia'; porAg[a]=(porAg[a]||0)+1; });
+  renderBarras('leadsPorAgencia', porAg, {}, total);
+
+  // Por asesor
+  const porAs={};
+  leadsData.forEach(l=>{ const a=l.asesor||'Sin asignar'; porAs[a]=(porAs[a]||0)+1; });
+  renderBarras('leadsPorAsesor', porAs, {}, total);
+
+  // Modelos
+  const porMod={};
+  leadsData.forEach(l=>{ const m=l.auto||l.vehiculo||'Sin especificar'; porMod[m]=(porMod[m]||0)+1; });
+  const topMod=Object.entries(porMod).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxMod=topMod[0]?.[1]||1;
+  $('leadsModelos').innerHTML=topMod.map(([m,v])=>`
+    <div style="background:var(--bg);border-radius:10px;padding:14px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${esc(m)}</div>
+      <div style="font-size:22px;font-weight:900;color:var(--brand);">${v}</div>
+      <div style="background:var(--border);border-radius:99px;height:5px;margin-top:8px;overflow:hidden;">
+        <div style="height:100%;background:var(--brand);border-radius:99px;width:${Math.round(v/maxMod*100)}%;"></div>
+      </div>
+    </div>`).join('');
+
+  // Tendencia por día
+  const porDia={};
+  leadsData.forEach(l=>{
+    const d=l.fechaCreacion?.toDate?l.fechaCreacion.toDate():new Date(l.fechaCreacion||Date.now());
+    const k=d.toISOString().split('T')[0];
+    porDia[k]=(porDia[k]||0)+1;
+  });
+  const dias=Object.keys(porDia).sort().slice(-30);
+  const maxD=Math.max(...dias.map(d=>porDia[d]),1);
+  $('leadsTendencia').innerHTML=dias.map(d=>`
+    <div style="flex-shrink:0;width:20px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;">
+      <div style="font-size:9px;color:var(--brand);font-weight:700;">${porDia[d]}</div>
+      <div style="width:16px;background:var(--brand);border-radius:3px 3px 0 0;height:${Math.round(porDia[d]/maxD*100)+4}px;"></div>
+    </div>`).join('');
+  $('leadsTendenciaLabels').innerHTML=dias.map(d=>`
+    <div style="flex-shrink:0;width:20px;text-align:center;font-size:9px;color:var(--muted);">
+      ${d.split('-')[2]}
+    </div>`).join('');
+}
+
+function renderBarras(containerId, data, colors, total) {
+  const el=$(containerId); if(!el) return;
+  const sorted=Object.entries(data).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?.[1]||1;
+  el.innerHTML=sorted.map(([k,v])=>{
+    const pct=total>0?Math.round(v/total*100):0;
+    const color=colors[k]||'var(--brand)';
+    return `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+        <span style="font-weight:600;">${esc(k)}</span>
+        <span style="color:var(--muted);">${v} <span style="font-size:11px;">(${pct}%)</span></span>
+      </div>
+      <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
+        <div style="height:100%;background:${color};border-radius:99px;width:${Math.round(v/max*100)}%;transition:width .4s;"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Sin datos</div>';
+}
+
 </script>
 </body>
 </html>

@@ -1180,6 +1180,7 @@ function goTo(screen) {
   window.scrollTo(0, 0);
   if(screen === 'llegadas') cargarLlegadas();
   if(screen === 'admin') cargarAdmin();
+  if(screen === 'resumen-mensual') setupResumenMensual();
 }
 
 // ════════════════════════════════════════════════════════
@@ -2566,17 +2567,7 @@ function descargarResumen() {
 }
 
 // Setup resumen mensual when navigating to it
-const _origGoTo = goTo;
-function goTo(screen) {
-  if(screen !== 'scanner' && scannerActive) stopScanner();
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = $('screen-' + screen);
-  if(el) el.classList.add('active');
-  window.scrollTo(0, 0);
-  if(screen === 'llegadas') cargarLlegadas();
-  if(screen === 'admin') cargarAdmin();
-  if(screen === 'resumen-mensual') setupResumenMensual();
-}
+// (goTo already handles this via the main function)
 
 </script>
 </body>

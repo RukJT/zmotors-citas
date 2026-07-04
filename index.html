@@ -1729,10 +1729,15 @@ function cambiarPeriodo(p, btn) {
 
 function setupAdminDash() {
   const hoy = new Date().toISOString().split('T')[0];
-  $('adminFiltroDesde').value = hoy;
-  $('adminFiltroHasta').value = hoy;
-  $('adminDashFecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if($('adminFiltroDesde')) $('adminFiltroDesde').value = hoy;
+  if($('adminFiltroHasta')) $('adminFiltroHasta').value = hoy;
+  if($('adminDashFecha')) $('adminDashFecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Update main header
+  if($('mainSub')) $('mainSub').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   adminPeriodo = 'dia';
+  // Reset tab UI
+  document.querySelectorAll('#adminPeriodoTabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  if($('adminFiltroCustom')) $('adminFiltroCustom').style.display='none';
   cargarAdminDash();
 }
 
@@ -1929,12 +1934,13 @@ async function cargarAdminDash() {
 function setupGerenteAgencia() {
   const marca = currentUser.agenciaMarca||null;
   setBrandTheme(marca);
-  setLogo('gaLogoBox', marca);
-  $('gaTitle').textContent = currentUser.agencia||'Mi Agencia';
-  $('gaAgenciaNombre').textContent = currentUser.agencia||'Mi Agencia';
-  $('gaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  if($('gaLogoBox')) setLogo('gaLogoBox', marca);
+  if($('gaTitle')) $('gaTitle').textContent = currentUser.agencia||'Mi Agencia';
+  if($('gaAgenciaNombre')) $('gaAgenciaNombre').textContent = currentUser.agencia||'Mi Agencia';
+  if($('gaUserNombre')) $('gaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  if($('mainTitle')) $('mainTitle').textContent = currentUser.agencia||'Mi Agencia';
   const hoy = new Date().toISOString().split('T')[0];
-  $('gaFiltroFecha').value = hoy;
+  if($('gaFiltroFecha')) $('gaFiltroFecha').value = hoy;
   cargarGerenteAgencia();
 }
 
@@ -2021,11 +2027,12 @@ async function marcarGA(docId, estado) {
 // GERENTE DE ÁREA
 // ════════════════════════════════════════════════════════
 function setupGerenteArea() {
-  $('gAreaTitle').textContent = currentUser.area||'Mi Área';
-  $('gAreaNombre').textContent = currentUser.area||'Mi Área';
-  $('gAreaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  if($('gAreaTitle')) $('gAreaTitle').textContent = currentUser.area||'Mi Área';
+  if($('gAreaNombre')) $('gAreaNombre').textContent = currentUser.area||'Mi Área';
+  if($('gAreaUserNombre')) $('gAreaUserNombre').textContent = currentUser.nombre||currentUser.username;
+  if($('mainTitle')) $('mainTitle').textContent = currentUser.area||'Mi Área';
   const hoy = new Date().toISOString().split('T')[0];
-  $('gAreaFecha').value = hoy;
+  if($('gAreaFecha')) $('gAreaFecha').value = hoy;
   cargarGerenteArea();
 }
 

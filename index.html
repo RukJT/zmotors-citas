@@ -2,7 +2,7 @@
 <html lang="es-MX">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Z Motors — Sistema de Citas</title>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -10,193 +10,221 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --brand: #1D3885;
-      --brand-accent: #00B0F0;
-      --success: #16A34A;
-      --warning: #D97706;
-      --error: #DC2626;
-      --bg: #F1F5FB;
-      --card: #FFFFFF;
-      --text: #1A2340;
-      --muted: #64748B;
-      --border: #D0D9EC;
-      --radius: 12px;
+      --brand: #1D3885; --brand-accent: #00B0F0;
+      --success: #16A34A; --warning: #D97706; --error: #DC2626;
+      --bg: #F1F5FB; --card: #FFFFFF; --text: #1A2340;
+      --muted: #64748B; --border: #D0D9EC; --radius: 12px;
+      --sidebar-w: 240px;
     }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      -webkit-tap-highlight-color: transparent;
+    /* ── APP LAYOUT ── */
+    .app { display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--brand);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+      transition: transform .3s ease;
     }
+    .sidebar-header {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      text-align: center;
+    }
+    .sidebar-logo {
+      width: 60px; height: 60px;
+      background: rgba(255,255,255,.9);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px;
+      overflow: hidden; padding: 8px;
+    }
+    .sidebar-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .sidebar-logo.no-img { font-size: 22px; font-weight: 900; color: var(--brand); }
+    .sidebar-title { font-size: 16px; font-weight: 800; }
+    .sidebar-sub { font-size: 11px; opacity: .6; margin-top: 2px; }
+    .sidebar-user {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      font-size: 13px;
+    }
+    .sidebar-user-name { font-weight: 700; }
+    .sidebar-user-role { font-size: 11px; opacity: .6; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: .75;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    .nav-item:hover { opacity: 1; background: rgba(255,255,255,.08); }
+    .nav-item.active { opacity: 1; background: rgba(255,255,255,.12); border-left-color: #fff; }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .btn-logout {
+      width: 100%; padding: 10px; background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2); color: #fff;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,.2); }
 
-    .container { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    /* ── MAIN CONTENT ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .main-title { font-size: 20px; font-weight: 800; }
+    .main-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .main-body { padding: 24px 28px; flex: 1; }
+
+    /* ── LOGIN (full screen, no sidebar) ── */
+    #screen-login {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1D3885 0%, #2D4FA0 100%);
+      z-index: 999;
+    }
+    #screen-login.hidden { display: none; }
+    .login-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .login-logo {
+      width: 72px; height: 72px;
+      background: var(--brand);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      overflow: hidden; padding: 10px;
+    }
+    .login-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .login-logo.no-img { font-size: 28px; font-weight: 900; color: #fff; }
+    .login-title { text-align: center; font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .login-sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 28px; }
 
     /* ── SCREENS ── */
     .screen { display: none; }
     .screen.active { display: block; animation: fadeIn .2s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 
-    /* ── NAVBAR ── */
-    .navbar {
-      background: var(--brand);
-      color: #fff;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    }
-    .navbar-back {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 4px;
-      line-height: 1;
-    }
-    .navbar-title { flex: 1; font-weight: 700; font-size: 16px; }
-
-    /* ── HERO / LOGIN ── */
-    .hero {
-      background: var(--brand);
-      padding: 40px 24px 32px;
-      text-align: center;
-      color: #fff;
-    }
-    .brand-logo {
-      width: 72px;
-      height: 72px;
-      background: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px;
-      overflow: hidden;
-      padding: 10px;
-    }
-    .brand-logo img { width: 100%; height: 100%; object-fit: contain; }
-    .brand-logo.no-img { font-size: 28px; font-weight: 900; color: var(--brand); }
-    .hero h1 { font-size: 26px; font-weight: 800; margin-bottom: 4px; }
-    .hero p { font-size: 14px; opacity: .8; }
-
-    /* ── CARDS ── */
+    /* ── CONTENT CARDS ── */
     .card {
       background: var(--card);
       border-radius: var(--radius);
-      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
       padding: 20px;
-      margin: 16px;
+      margin-bottom: 20px;
     }
     .card-title {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      color: var(--muted);
-      margin-bottom: 16px;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--muted); margin-bottom: 16px;
     }
 
-    /* ── FORM ── */
-    .form-wrap { padding: 16px; }
-    .form-group { margin-bottom: 16px; }
-    .form-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .4px;
-      color: var(--muted);
-      margin-bottom: 6px;
+    /* ── KPI GRID ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 16px;
+      margin-bottom: 20px;
     }
+    .kpi-box {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .kpi-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+    .kpi-value { font-size: 36px; font-weight: 900; color: var(--brand); line-height: 1; }
+    .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── GRID LAYOUTS ── */
+    .grid-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-bottom: 20px; }
+    .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 16px; margin-bottom: 20px; }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 6px; }
     .form-input, .form-select, .form-textarea {
-      width: 100%;
-      padding: 12px 14px;
-      font-size: 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-family: inherit;
-      color: var(--text);
-      background: #fff;
-      transition: border-color .2s;
-      appearance: none;
-      -webkit-appearance: none;
+      width: 100%; padding: 10px 14px; font-size: 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: inherit; color: var(--text); background: #fff;
+      transition: border-color .2s; appearance: none;
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
-      outline: none;
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(29,56,133,.12);
+      outline: none; border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(29,56,133,.1);
     }
     .form-textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 16px; }
 
-    /* Time picker */
-    .time-pick {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    /* ── TIME PICKER ── */
+    .time-pick { display: flex; gap: 8px; align-items: center; }
     .time-pick select {
-      flex: 1;
-      padding: 12px 8px;
-      font-size: 15px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      text-align: center;
-      background: #fff;
-      color: var(--text);
-      appearance: none;
-      -webkit-appearance: none;
-      cursor: pointer;
+      flex: 1; padding: 10px 8px; font-size: 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      text-align: center; background: #fff; color: var(--text);
+      appearance: none; cursor: pointer;
     }
-    .time-pick select:focus {
-      outline: none;
-      border-color: var(--brand);
-    }
+    .time-pick select:focus { outline: none; border-color: var(--brand); }
     .time-sep { font-size: 20px; font-weight: 700; color: var(--muted); }
 
     /* ── BUTTONS ── */
     .btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 0 16px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      text-align: center;
-      letter-spacing: .3px;
-      transition: opacity .15s, transform .1s;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; font-size: 14px; font-weight: 700;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: inherit; transition: opacity .15s, transform .1s;
+      text-decoration: none;
     }
-    .btn:active { transform: scale(.98); opacity: .9; }
+    .btn:active { transform: scale(.98); }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
     .btn-primary { background: var(--brand); color: #fff; }
     .btn-success { background: var(--success); color: #fff; }
     .btn-warning { background: var(--warning); color: #fff; }
     .btn-error { background: var(--error); color: #fff; }
-    .btn-ghost { background: transparent; color: var(--brand); border: 2px solid var(--brand); width: auto; padding: 8px 16px; font-size: 13px; }
-    .btn-sm { width: auto; margin: 0; padding: 7px 12px; font-size: 12px; border-radius: 8px; }
-    .btn-mt { margin-top: 16px; }
+    .btn-ghost { background: transparent; color: var(--brand); border: 2px solid var(--brand); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-block { width: 100%; justify-content: center; }
+    .btn-whatsapp { background: #25D366; color: #fff; }
 
-    /* ── ALERT BOXES ── */
-    .alert {
-      margin: 16px;
-      padding: 14px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      display: none;
-    }
-    .alert.show { display: block; animation: fadeIn .2s ease; }
-    .alert-title { font-weight: 700; margin-bottom: 4px; }
+    /* ── ALERTS ── */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; display: none; margin-bottom: 16px; }
+    .alert.show { display: block; }
+    .alert-title { font-weight: 700; margin-bottom: 2px; }
     .alert-success { background: #DCFCE7; border-left: 4px solid var(--success); }
     .alert-success .alert-title { color: var(--success); }
     .alert-error { background: #FEE2E2; border-left: 4px solid var(--error); }
@@ -204,31 +232,18 @@
     .alert-warning { background: #FEF9C3; border-left: 4px solid var(--warning); }
     .alert-warning .alert-title { color: var(--warning); }
 
-    /* ── KPI STRIP ── */
-    .kpi-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 10px;
-      padding: 16px;
-    }
-    .kpi-box {
-      background: var(--card);
-      border-radius: 10px;
-      padding: 12px 8px;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
-    }
-    .kpi-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
-    .kpi-value { font-size: 22px; font-weight: 800; color: var(--brand); }
+    /* ── BADGES ── */
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    .badge-pending { background: #FEF9C3; color: #92400E; }
+    .badge-success { background: #DCFCE7; color: #166534; }
+    .badge-error { background: #FEE2E2; color: #991B1B; }
+    .badge-warning { background: #FEF3C7; color: #92400E; }
 
     /* ── CITA CARD ── */
     .cita-card {
-      background: var(--card);
-      margin: 0 16px 10px;
-      padding: 14px;
-      border-radius: var(--radius);
-      border-left: 4px solid var(--brand);
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      background: var(--card); padding: 16px; border-radius: var(--radius);
+      border-left: 4px solid var(--brand); box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      margin-bottom: 10px;
     }
     .cita-card.llegó { border-left-color: var(--success); }
     .cita-card.no-llegó { border-left-color: var(--error); }
@@ -236,218 +251,120 @@
     .cita-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
     .cita-name { font-weight: 700; font-size: 15px; }
     .cita-time { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .badge {
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .badge-pending { background: #FEF9C3; color: #92400E; }
-    .badge-success { background: #DCFCE7; color: #166534; }
-    .badge-error { background: #FEE2E2; color: #991B1B; }
-    .badge-warning { background: #FEF3C7; color: #92400E; }
-    .cita-details { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.9; }
+    .cita-details { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
     .cita-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--brand); color: #fff; padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); background: #fff; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
     /* ── QR BOX ── */
-    .qr-box {
-      margin: 16px;
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 2px solid var(--success);
-      padding: 20px;
-      text-align: center;
-      display: none;
-    }
+    .qr-box { background: var(--card); border: 2px solid var(--success); border-radius: var(--radius); padding: 24px; text-align: center; display: none; margin-top: 20px; }
     .qr-box.show { display: block; }
-    .qr-box-title { color: var(--success); font-weight: 800; font-size: 17px; margin-bottom: 16px; }
-    .qr-info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .qr-info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
     .qr-info-row:last-child { border-bottom: none; }
     .qr-info-label { color: var(--muted); font-weight: 600; }
     #qrCodeDiv { margin: 16px auto; display: flex; justify-content: center; }
-    #qrCodeDiv canvas, #qrCodeDiv img { border-radius: 8px !important; }
-    .qr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-    .qr-actions .btn { width: 100%; margin: 0; font-size: 13px; padding: 10px; }
-    .btn-whatsapp { background: #25D366; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
-    .btn-span2 { grid-column: 1 / -1; }
 
-    /* ── CHECKIN (client view) ── */
-    .checkin-wrap { padding: 24px 16px; }
-    .checkin-confirm-btn {
-      width: 100%;
-      padding: 20px;
-      font-size: 18px;
-      font-weight: 800;
-      background: var(--success);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-      margin-top: 16px;
-    }
-    .checkin-done {
-      background: #DCFCE7;
-      border: 2px solid var(--success);
-      border-radius: var(--radius);
-      padding: 24px;
-      text-align: center;
-      margin-top: 16px;
-      display: none;
-    }
-    .checkin-done.show { display: block; }
-    .checkin-done-icon { font-size: 48px; }
-    .checkin-done-text { color: var(--success); font-weight: 800; font-size: 18px; margin-top: 8px; }
-
-    /* ── REAGENDA PANEL ── */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: none; }
-    .overlay.show { display: block; }
-    .panel {
-      position: fixed;
-      bottom: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 100%; max-width: 480px;
-      background: #fff;
-      border-radius: 20px 20px 0 0;
-      padding: 20px;
-      max-height: 85vh;
-      overflow-y: auto;
-      z-index: 201;
-      display: none;
-    }
-    .panel.show { display: block; animation: slideUp .22s ease; }
-    @keyframes slideUp { from { transform: translateX(-50%) translateY(100%); } to { transform: translateX(-50%) translateY(0); } }
-    .panel-title { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
-    .panel-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
-
-    /* ── MENU CARDS ── */
-    .menu-grid { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .menu-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 16px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
-      border: 1.5px solid transparent;
-      transition: border-color .15s;
-    }
-    .menu-card:active { border-color: var(--brand); }
-    .menu-icon {
-      width: 46px; height: 46px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
-    }
-    .menu-text h3 { font-size: 15px; font-weight: 700; }
-    .menu-text p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .menu-arrow { margin-left: auto; font-size: 20px; color: var(--muted); }
-
-    /* ── ADMIN TABS ── */
-    .tabs { display: flex; gap: 4px; padding: 12px 16px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
     .tab-btn {
-      flex-shrink: 0;
-      padding: 8px 14px;
-      background: none;
-      border: none;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      white-space: nowrap;
+      padding: 10px 18px; background: none; border: none;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; white-space: nowrap; font-family: inherit;
     }
     .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
     .tab-content { display: none; }
     .tab-content.active { display: block; animation: fadeIn .2s ease; }
 
+    /* ── ADMIN ITEMS ── */
     .admin-item {
-      background: var(--card);
-      margin: 10px 16px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      background: var(--card); padding: 14px 16px; border-radius: 10px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.05); margin-bottom: 8px;
     }
     .admin-item-info { flex: 1; }
     .admin-item-name { font-weight: 700; font-size: 14px; }
     .admin-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    /* ── SCANNER ── */
-    #qr-reader { margin: 16px; border-radius: var(--radius); overflow: hidden; }
-    .scan-result {
-      margin: 16px;
-      padding: 14px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 15px;
-      text-align: center;
-      display: none;
+    /* ── PANEL (reagenda) ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; display: none; }
+    .overlay.show { display: block; }
+    .panel {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff; border-radius: 16px;
+      padding: 28px; width: 100%; max-width: 480px;
+      max-height: 90vh; overflow-y: auto;
+      z-index: 201; display: none;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
     }
+    .panel.show { display: block; animation: fadeIn .2s ease; }
+    .panel-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .panel-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+
+    /* ── SCANNER ── */
+    #qr-reader { border-radius: var(--radius); overflow: hidden; max-width: 400px; }
+    .scan-result { padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center; display: none; margin-top: 12px; }
     .scan-result.show { display: block; }
     .scan-result.ok { background: #DCFCE7; color: var(--success); }
     .scan-result.err { background: #FEE2E2; color: var(--error); }
     .scan-result.dup { background: #FEF9C3; color: var(--warning); }
 
-    .checkin-list { padding: 0 16px 16px; }
-    .checkin-item {
-      display: flex; justify-content: space-between;
-      background: var(--card);
-      padding: 10px 14px;
-      border-radius: 8px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    /* ── CHECKIN (client view) ── */
+    #screen-checkin .main-body { max-width: 500px; margin: 0 auto; }
+    .checkin-confirm-btn {
+      width: 100%; padding: 18px; font-size: 18px; font-weight: 800;
+      background: var(--success); color: #fff; border: none;
+      border-radius: var(--radius); cursor: pointer; margin-top: 16px;
+      font-family: inherit;
     }
+    .checkin-done {
+      background: #DCFCE7; border: 2px solid var(--success);
+      border-radius: var(--radius); padding: 24px; text-align: center;
+      margin-top: 16px; display: none;
+    }
+    .checkin-done.show { display: block; }
 
-    /* ── EMPTY STATE ── */
-    .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+    /* ── EMPTY ── */
+    .empty { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
     .empty-icon { font-size: 40px; margin-bottom: 10px; }
 
-    /* ── LOADING ── */
-    .spinner {
-      display: inline-block;
-      width: 22px; height: 22px;
-      border: 3px solid rgba(0,0,0,.1);
-      border-top-color: var(--brand);
-      border-radius: 50%;
-      animation: spin .6s linear infinite;
-    }
+    /* ── SPINNER ── */
+    .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid rgba(0,0,0,.1); border-top-color: var(--brand); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── CORTE TABLE ── */
-    .table-wrap { overflow-x: auto; margin: 0 16px 16px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 340px; }
-    th { background: var(--brand); color: #fff; padding: 10px 8px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-    td { padding: 10px 8px; border-bottom: 1px solid var(--border); background: #fff; }
-    tr:last-child td { border-bottom: none; }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 360px) {
-      .kpi-strip { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    /* ── RESPONSIVE MOBILE ── */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .main-header { padding: 14px 16px; }
+      .main-body { padding: 16px; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .mobile-menu-btn { display: flex !important; }
+    }
+    .mobile-menu-btn {
+      display: none; background: none; border: none;
+      font-size: 22px; cursor: pointer; padding: 4px;
     }
   </style>
 </head>
 <body>
-<div class="container">
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: LOGIN
-══════════════════════════════════════════════════════ -->
-<div id="screen-login" class="screen active">
-  <div class="hero" id="loginHero">
-    <div class="brand-logo no-img" id="loginLogoBox">Z</div>
-    <h1>Z Motors</h1>
-    <p>Sistema de Citas</p>
-  </div>
-  <div class="card">
-    <div class="card-title">Iniciar sesión</div>
+<!-- ══ LOGIN (pantalla completa) ══ -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo no-img" id="loginLogoBox">Z</div>
+    <div class="login-title">Z Motors</div>
+    <div class="login-sub">Sistema de Citas</div>
     <div class="form-group">
       <label class="form-label">Usuario</label>
       <input type="text" id="loginUser" class="form-input" placeholder="usuario" autocomplete="username" autocapitalize="none">
@@ -457,619 +374,504 @@
       <input type="password" id="loginPass" class="form-input" placeholder="••••••" autocomplete="current-password">
     </div>
     <div id="loginError" class="alert alert-error"><div class="alert-title">Error</div><div id="loginErrorMsg"></div></div>
-  </div>
-  <button type="button" class="btn btn-primary btn-mt" onclick="doLogin()">Entrar</button>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: HOME
-══════════════════════════════════════════════════════ -->
-<div id="screen-home" class="screen">
-  <div class="hero" id="homeHero">
-    <div class="brand-logo no-img" id="homeLogoBox">Z</div>
-    <h1 id="homeAgenciaName">Z Motors</h1>
-    <p id="homeUserName">Bienvenido</p>
-  </div>
-  <div class="card" style="padding: 16px 20px;">
-    <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: .4px; margin-bottom: 4px;">Citas hoy</div>
-    <div style="font-size: 44px; font-weight: 900; color: var(--brand);" id="homeCounter">0</div>
-  </div>
-  <div class="menu-grid">
-    <div class="menu-card" onclick="goTo('llegadas')">
-      <div class="menu-icon" style="background:#E0F2FE">✅</div>
-      <div class="menu-text"><h3>Llegadas del día</h3><p>Registrar asistencia de clientes</p></div>
-      <div class="menu-arrow">›</div>
-    </div>
-    <div class="menu-card" onclick="goTo('form')">
-      <div class="menu-icon" style="background:#DCFCE7">📅</div>
-      <div class="menu-text"><h3>Nueva cita</h3><p>Registrar cita manual</p></div>
-      <div class="menu-arrow">›</div>
-    </div>
-    <div class="menu-card" onclick="goTo('scanner')">
-      <div class="menu-icon" style="background:#F3E8FF">📱</div>
-      <div class="menu-text"><h3>Escáner QR</h3><p>Check-in con código QR</p></div>
-      <div class="menu-arrow">›</div>
-    </div>
-    <div class="menu-card" onclick="goTo('corte')">
-      <div class="menu-icon" style="background:#FEF9C3">📋</div>
-      <div class="menu-text"><h3>Corte del día</h3><p>Resumen y reporte diario</p></div>
-      <div class="menu-arrow">›</div>
-    </div>
-    <div class="menu-card" id="adminMenuCard" style="display:none" onclick="goTo('admin')">
-      <div class="menu-icon" style="background:#FEE2E2">⚙️</div>
-      <div class="menu-text"><h3>Administración</h3><p>Usuarios, agencias y vendedores</p></div>
-      <div class="menu-arrow">›</div>
-    </div>
-  </div>
-  <div style="padding: 0 16px 24px;">
-    <button type="button" class="btn btn-ghost" onclick="doLogout()">Cerrar sesión</button>
+    <button type="button" class="btn btn-primary btn-block" onclick="doLogin()">Entrar</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: LLEGADAS
-══════════════════════════════════════════════════════ -->
-<div id="screen-llegadas" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('home')">←</button>
-    <div class="navbar-title">Llegadas del día</div>
-  </div>
-  <div class="form-wrap" style="padding-bottom: 0;">
-    <div class="form-group">
-      <label class="form-label">Fecha</label>
-      <input type="date" id="llegadasFecha" class="form-input">
-    </div>
-    <button type="button" class="btn btn-primary" onclick="cargarLlegadas()" style="margin: 0 0 16px; width: 100%;">Buscar</button>
-  </div>
-  <div id="llegadasKpi" class="kpi-strip" style="display:none;">
-    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="kpiTotal">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="kpiLlegaron" style="color:var(--success)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="kpiNo" style="color:var(--error)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="kpiVentas" style="color:var(--warning)">0</div></div>
-  </div>
-  <div id="llegadasList"></div>
-</div>
+<!-- ══ APP LAYOUT ══ -->
+<div class="app" id="appLayout" style="display:none;">
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: FORM (nueva cita)
-══════════════════════════════════════════════════════ -->
-<div id="screen-form" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('home')">←</button>
-    <div class="navbar-title">Nueva cita</div>
-  </div>
-  <div class="form-wrap">
-    <div class="form-group">
-      <label class="form-label">Asesor</label>
-      <select id="formAsesor" class="form-select">
-        <option value="">Seleccionar asesor...</option>
-      </select>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo no-img" id="sidebarLogoBox">Z</div>
+      <div class="sidebar-title" id="sidebarAgencia">Z Motors</div>
+      <div class="sidebar-sub">Sistema de Citas</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Nombre del cliente</label>
-      <input type="text" id="formNombre" class="form-input" placeholder="Ej: Juan García">
+    <div class="sidebar-user">
+      <div class="sidebar-user-name" id="sidebarUserName">—</div>
+      <div class="sidebar-user-role" id="sidebarUserRole">—</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Teléfono</label>
-      <input type="tel" id="formTelefono" class="form-input" placeholder="10 dígitos" maxlength="10" inputmode="numeric">
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <button type="button" class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Vehículo de interés</label>
-      <select id="formVehiculo" class="form-select">
-        <option value="">Seleccionar vehículo...</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tipo</label>
-      <select id="formTipo" class="form-select">
-        <option value="Nuevo">Nuevo</option>
-        <option value="Seminuevo">Seminuevo</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Fecha de cita</label>
-      <input type="date" id="formFecha" class="form-input">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Hora de cita</label>
-      <div class="time-pick">
-        <select id="formHoraH">
-          <option value="">--</option>
-          <option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option>
-        </select>
-        <span class="time-sep">:</span>
-        <select id="formHoraM">
-          <option value="">--</option>
-          <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-        </select>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="mainArea">
+    <div class="main-header">
+      <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div>
+        <div class="main-title" id="mainTitle">Dashboard</div>
+        <div class="main-sub" id="mainSub"></div>
       </div>
+      <div id="mainHeaderActions"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Tipo de prospecto</label>
-      <select id="formProspecto" class="form-select">
-        <option value="Digital">Digital</option>
-        <option value="Showroom">Showroom</option>
-        <option value="Telefono">Teléfono</option>
-        <option value="Referido">Referido</option>
-        <option value="Otro">Otro</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Comentarios</label>
-      <textarea id="formComentarios" class="form-textarea" placeholder="Notas adicionales..."></textarea>
-    </div>
-    <button type="button" class="btn btn-success" onclick="registrarCita()">Registrar cita</button>
-  </div>
-  <div id="formAlert" class="alert"></div>
-  <div id="qrBox" class="qr-box">
-    <div class="qr-box-title">✅ Cita registrada</div>
-    <div id="qrInfoRows"></div>
-    <div id="qrCodeDiv"></div>
-    <div class="qr-actions">
-      <a id="btnWA" class="btn btn-whatsapp">📱 WhatsApp</a>
-      <button type="button" class="btn btn-primary" onclick="descargarQR()">⬇ QR</button>
-      <button type="button" class="btn btn-ghost btn-span2" onclick="resetForm()">Registrar otra cita</button>
-    </div>
-  </div>
-</div>
+    <div class="main-body" id="mainBody">
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: SCANNER
-══════════════════════════════════════════════════════ -->
-<div id="screen-scanner" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('home')">←</button>
-    <div class="navbar-title">Escáner QR</div>
-  </div>
-  <div id="qr-reader" style="margin: 16px;"></div>
-  <div style="padding: 0 16px 16px;">
-    <button type="button" id="scanBtn" class="btn btn-primary" onclick="toggleScanner()" style="width:100%; margin:0;">Iniciar cámara</button>
-  </div>
-  <div id="scanResult" class="scan-result"></div>
-  <div class="checkin-list">
-    <div style="font-size:13px; font-weight:700; margin-bottom:10px;">Check-ins de hoy (<span id="checkinCount">0</span>)</div>
-    <div id="checkinList"></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: CORTE
-══════════════════════════════════════════════════════ -->
-<div id="screen-corte" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('home')">←</button>
-    <div class="navbar-title">Corte del día</div>
-  </div>
-  <div class="form-wrap" style="padding-bottom: 0;">
-    <div class="form-group">
-      <label class="form-label">Fecha</label>
-      <input type="date" id="corteFecha" class="form-input">
-    </div>
-    <button type="button" class="btn btn-primary" onclick="generarCorte()" style="margin: 0 0 16px; width: 100%;">Generar corte</button>
-  </div>
-  <div id="corteKpi" class="kpi-strip" style="display:none;">
-    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="corteTotal">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="corteLlegaron" style="color:var(--success)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="corteNo" style="color:var(--error)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="corteVentas" style="color:var(--warning)">0</div></div>
-  </div>
-  <div id="corteTable" style="display:none;">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Nombre</th><th>Hora</th><th>Asesor</th><th>Estatus</th></tr></thead>
-        <tbody id="corteBody"></tbody>
-      </table>
-    </div>
-    <div style="padding: 0 16px 24px; display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="copiarWA()">📋 WhatsApp</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: ADMIN
-══════════════════════════════════════════════════════ -->
-<div id="screen-admin" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="currentUser?.rol==='admin'?goTo('admin-dash'):goTo('home')">←</button>
-    <div class="navbar-title">Administración</div>
-  </div>
-  <div class="tabs">
-    <button type="button" class="tab-btn active" onclick="switchTab('usuarios',this)">Usuarios</button>
-    <button type="button" class="tab-btn" onclick="switchTab('asesores',this)">Asesores</button>
-    <button type="button" class="tab-btn" onclick="switchTab('vehiculos',this)">Vehículos</button>
-    <button type="button" class="tab-btn" onclick="switchTab('agencias',this)">Agencias</button>
-  </div>
-
-  <!-- Tab: Usuarios -->
-  <div id="tab-usuarios" class="tab-content active">
-    <div class="card">
-      <div class="card-title">Nuevo usuario</div>
-      <div class="form-group"><label class="form-label">Usuario</label><input type="text" id="nuUser" class="form-input" placeholder="usuario_piso"></div>
-      <div class="form-group"><label class="form-label">Contraseña</label><input type="password" id="nuPass" class="form-input" placeholder="••••••"></div>
-      <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="nuNombre" class="form-input" placeholder="Nombre completo"></div>
-      <div class="form-group"><label class="form-label">Agencia</label><select id="nuAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
-      <div class="form-group"><label class="form-label">Rol</label>
-        <select id="nuRol" class="form-select">
-          <option value="piso">Asesor de piso</option>
-          <option value="admin">Administrador</option>
-        </select>
+      <!-- ══ SCREEN: HOME (piso) ══ -->
+      <div id="screen-home" class="screen">
+        <div class="kpi-grid" style="grid-template-columns:minmax(0,1fr);">
+          <div class="kpi-box">
+            <div class="kpi-label">Citas hoy</div>
+            <div class="kpi-value" id="homeCounter">0</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card" style="cursor:pointer;border:2px solid transparent;transition:border .15s;" onclick="goTo('llegadas')" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='transparent'">
+            <div style="font-size:36px;margin-bottom:12px;">✅</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">Llegadas del día</div>
+            <div style="font-size:13px;color:var(--muted);">Registrar asistencia de clientes</div>
+          </div>
+          <div class="card" style="cursor:pointer;border:2px solid transparent;transition:border .15s;" onclick="goTo('form')" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='transparent'">
+            <div style="font-size:36px;margin-bottom:12px;">📅</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">Nueva cita</div>
+            <div style="font-size:13px;color:var(--muted);">Registrar cita manual</div>
+          </div>
+          <div class="card" style="cursor:pointer;border:2px solid transparent;transition:border .15s;" onclick="goTo('scanner')" onmouseover="this.style.borderColor='#8B5CF6'" onmouseout="this.style.borderColor='transparent'">
+            <div style="font-size:36px;margin-bottom:12px;">📱</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">Escáner QR</div>
+            <div style="font-size:13px;color:var(--muted);">Check-in con código QR</div>
+          </div>
+          <div class="card" style="cursor:pointer;border:2px solid transparent;transition:border .15s;" onclick="goTo('corte')" onmouseover="this.style.borderColor='var(--warning)'" onmouseout="this.style.borderColor='transparent'">
+            <div style="font-size:36px;margin-bottom:12px;">📋</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">Corte del día</div>
+            <div style="font-size:13px;color:var(--muted);">Resumen y reporte diario</div>
+          </div>
+        </div>
       </div>
-      <button type="button" class="btn btn-success" onclick="crearUsuario()" style="width:100%;margin:0;">Crear usuario</button>
-    </div>
-    <div id="usuariosList"></div>
-  </div>
 
-  <!-- Tab: Asesores -->
-  <div id="tab-asesores" class="tab-content">
-    <div class="card">
-      <div class="card-title">Nuevo asesor</div>
-      <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="naName" class="form-input" placeholder="Nombre del asesor"></div>
-      <div class="form-group"><label class="form-label">Agencia</label><select id="naAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
-      <button type="button" class="btn btn-success" onclick="crearAsesor()" style="width:100%;margin:0;">Agregar asesor</button>
-    </div>
-    <div id="asesoresList"></div>
-  </div>
-
-  <!-- Tab: Vehículos -->
-  <div id="tab-vehiculos" class="tab-content">
-    <div class="card">
-      <div class="card-title">Nuevo vehículo</div>
-      <div class="form-group"><label class="form-label">Agencia</label><select id="nvAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
-      <div class="form-group"><label class="form-label">Modelo</label><input type="text" id="nvModelo" class="form-input" placeholder="Ej: Jetta 2025"></div>
-      <button type="button" class="btn btn-success" onclick="crearVehiculo()" style="width:100%;margin:0;">Agregar vehículo</button>
-    </div>
-    <div id="vehiculosList"></div>
-  </div>
-
-  <!-- Tab: Agencias -->
-  <div id="tab-agencias" class="tab-content">
-    <div class="card">
-      <div class="card-title">Nueva agencia</div>
-      <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="newAgNombre" class="form-input" placeholder="Nombre de la agencia"></div>
-      <div class="form-group"><label class="form-label">Marca</label>
-        <select id="newAgMarca" class="form-select">
-          <option value="vw">Volkswagen</option>
-          <option value="audi">Audi</option>
-          <option value="seat">SEAT</option>
-          <option value="cupra">CUPRA</option>
-          <option value="geely">Geely</option>
-          <option value="omoda">Omoda</option>
-        </select>
+      <!-- ══ SCREEN: LLEGADAS ══ -->
+      <div id="screen-llegadas" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:160px;">
+              <label class="form-label">Fecha</label>
+              <input type="date" id="llegadasFecha" class="form-input">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="cargarLlegadas()">Buscar</button>
+          </div>
+        </div>
+        <div id="llegadasKpi" class="kpi-grid" style="display:none;">
+          <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="kpiTotal">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="kpiLlegaron" style="color:var(--success)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="kpiNo" style="color:var(--error)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="kpiVentas" style="color:var(--warning)">0</div></div>
+        </div>
+        <div id="llegadasList"></div>
       </div>
-      <button type="button" class="btn btn-success" onclick="crearAgencia()" style="width:100%;margin:0;">Agregar agencia</button>
-    </div>
-    <div id="agenciasList"></div>
-  </div>
-</div>
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: CHECKIN (cliente escanea QR)
-══════════════════════════════════════════════════════ -->
-<div id="screen-checkin" class="screen">
-  <div class="hero" id="checkinHero">
-    <div class="brand-logo no-img" id="checkinLogoBox">Z</div>
-    <h1>Z Motors</h1>
-    <p>Confirmación de cita</p>
-  </div>
-  <div class="checkin-wrap">
-    <div id="checkinLoading" style="text-align:center;padding:40px;"><div class="spinner"></div></div>
-    <div id="checkinInfo" style="display:none;">
-      <div class="card">
-        <div class="qr-info-row"><span class="qr-info-label">Cliente</span><span id="ciNombre"></span></div>
-        <div class="qr-info-row"><span class="qr-info-label">Fecha</span><span id="ciFecha"></span></div>
-        <div class="qr-info-row"><span class="qr-info-label">Hora</span><span id="ciHora"></span></div>
-        <div class="qr-info-row"><span class="qr-info-label">Vehículo</span><span id="ciVehiculo"></span></div>
-        <div class="qr-info-row"><span class="qr-info-label">Asesor</span><span id="ciAsesor"></span></div>
-        <div class="qr-info-row" style="border:none"><span class="qr-info-label">Agencia</span><span id="ciAgencia"></span></div>
+      <!-- ══ SCREEN: NUEVA CITA ══ -->
+      <div id="screen-form" class="screen">
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-title">Datos del cliente</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Asesor</label>
+                  <select id="formAsesor" class="form-select"><option value="">Seleccionar...</option></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nombre del cliente</label>
+                  <input type="text" id="formNombre" class="form-input" placeholder="Nombre completo">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Teléfono</label>
+                  <input type="tel" id="formTelefono" class="form-input" placeholder="10 dígitos" maxlength="10" inputmode="numeric">
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Vehículo e interés</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Vehículo de interés</label>
+                  <select id="formVehiculo" class="form-select"><option value="">Seleccionar...</option></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tipo</label>
+                  <select id="formTipo" class="form-select">
+                    <option value="Nuevo">Nuevo</option>
+                    <option value="Seminuevo">Seminuevo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tipo de prospecto</label>
+                  <select id="formProspecto" class="form-select">
+                    <option value="Digital">Digital</option>
+                    <option value="Showroom">Showroom</option>
+                    <option value="Telefono">Teléfono</option>
+                    <option value="Referido">Referido</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Fecha y hora de cita</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Fecha</label>
+                  <input type="date" id="formFecha" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Hora</label>
+                  <div class="time-pick">
+                    <select id="formHoraH">
+                      <option value="">--</option>
+                      <option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option>
+                    </select>
+                    <span class="time-sep">:</span>
+                    <select id="formHoraM">
+                      <option value="">--</option>
+                      <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Comentarios</label>
+                <textarea id="formComentarios" class="form-textarea" placeholder="Notas adicionales..."></textarea>
+              </div>
+              <button type="button" class="btn btn-success btn-block" onclick="registrarCita()">Registrar cita</button>
+            </div>
+            <div id="formAlert" class="alert"></div>
+            <div id="qrBox" class="qr-box">
+              <div style="font-size:18px;font-weight:800;color:var(--success);margin-bottom:16px;">✅ Cita registrada</div>
+              <div id="qrInfoRows"></div>
+              <div id="qrCodeDiv"></div>
+              <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+                <a id="btnWA" class="btn btn-whatsapp" style="flex:1;">📱 WhatsApp</a>
+                <button type="button" class="btn btn-primary" onclick="descargarQR()">⬇ QR</button>
+                <button type="button" class="btn btn-ghost btn-block" onclick="resetForm()" style="margin-top:8px;">Registrar otra cita</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <button type="button" id="ciBtn" class="checkin-confirm-btn" onclick="confirmarCheckin()">✅ Confirmar mi llegada</button>
-      <div id="ciDone" class="checkin-done">
-        <div class="checkin-done-icon">✅</div>
-        <div class="checkin-done-text">¡Llegada confirmada!</div>
-        <div style="font-size:13px;color:var(--success);margin-top:6px;">Te esperamos en tu cita.</div>
-      </div>
-      <div id="ciYaDone" style="display:none;" class="checkin-done">
-        <div class="checkin-done-icon">✓</div>
-        <div class="checkin-done-text">Ya registramos tu llegada</div>
-      </div>
-    </div>
-    <div id="checkinErr" style="display:none;" class="alert alert-error show">
-      <div class="alert-title">No encontrado</div>
-      <div id="checkinErrMsg">Esta cita no existe o ya expiró.</div>
-    </div>
-  </div>
-</div>
 
-<!-- ══════════════════════════════════════════════════════
-     REAGENDA PANEL
-══════════════════════════════════════════════════════ -->
+      <!-- ══ SCREEN: SCANNER ══ -->
+      <div id="screen-scanner" class="screen">
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-title">Cámara QR</div>
+              <div id="qr-reader"></div>
+              <button type="button" id="scanBtn" class="btn btn-primary btn-block" onclick="toggleScanner()" style="margin-top:12px;">Iniciar cámara</button>
+              <div id="scanResult" class="scan-result"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Check-ins de hoy (<span id="checkinCount">0</span>)</div>
+              <div id="checkinList"><div class="empty">Sin registros aún</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: CORTE ══ -->
+      <div id="screen-corte" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:160px;">
+              <label class="form-label">Fecha</label>
+              <input type="date" id="corteFecha" class="form-input">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="generarCorte()">Generar corte</button>
+            <button type="button" class="btn btn-ghost" onclick="copiarWA()">📋 WhatsApp</button>
+          </div>
+        </div>
+        <div id="corteKpi" class="kpi-grid" style="display:none;">
+          <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="corteTotal">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="corteLlegaron" style="color:var(--success)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="corteNo" style="color:var(--error)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="corteVentas" style="color:var(--warning)">0</div></div>
+        </div>
+        <div id="corteTable" style="display:none;" class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Hora</th><th>Vehículo</th><th>Asesor</th><th>Estatus</th></tr></thead>
+              <tbody id="corteBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: ADMIN CONFIG ══ -->
+      <div id="screen-admin" class="screen">
+        <div class="tabs">
+          <button type="button" class="tab-btn active" onclick="switchTab('usuarios',this)">Usuarios</button>
+          <button type="button" class="tab-btn" onclick="switchTab('asesores',this)">Asesores</button>
+          <button type="button" class="tab-btn" onclick="switchTab('vehiculos',this)">Vehículos</button>
+          <button type="button" class="tab-btn" onclick="switchTab('agencias',this)">Agencias</button>
+        </div>
+        <div id="tab-usuarios" class="tab-content active">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Nuevo usuario</div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Usuario</label><input type="text" id="nuUser" class="form-input" placeholder="usuario_piso"></div>
+                <div class="form-group"><label class="form-label">Contraseña</label><input type="password" id="nuPass" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="nuNombre" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Agencia</label><select id="nuAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
+                <div class="form-group"><label class="form-label">Rol</label>
+                  <select id="nuRol" class="form-select">
+                    <option value="piso">Asesor de piso</option>
+                    <option value="gerente_agencia">Gerente de agencia</option>
+                    <option value="gerente_area">Gerente de área</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" class="btn btn-success btn-block" onclick="crearUsuario()">Crear usuario</button>
+            </div>
+            <div><div id="usuariosList"></div></div>
+          </div>
+        </div>
+        <div id="tab-asesores" class="tab-content">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Nuevo asesor</div>
+              <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="naName" class="form-input"></div>
+              <div class="form-group"><label class="form-label">Agencia</label><select id="naAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
+              <button type="button" class="btn btn-success btn-block" onclick="crearAsesor()">Agregar asesor</button>
+            </div>
+            <div><div id="asesoresList"></div></div>
+          </div>
+        </div>
+        <div id="tab-vehiculos" class="tab-content">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Nuevo vehículo</div>
+              <div class="form-group"><label class="form-label">Agencia</label><select id="nvAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
+              <div class="form-group"><label class="form-label">Modelo</label><input type="text" id="nvModelo" class="form-input" placeholder="Ej: Jetta 2025"></div>
+              <button type="button" class="btn btn-success btn-block" onclick="crearVehiculo()">Agregar vehículo</button>
+            </div>
+            <div><div id="vehiculosList"></div></div>
+          </div>
+        </div>
+        <div id="tab-agencias" class="tab-content">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Nueva agencia</div>
+              <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="newAgNombre" class="form-input"></div>
+              <div class="form-group"><label class="form-label">Marca</label>
+                <select id="newAgMarca" class="form-select">
+                  <option value="vw">Volkswagen</option>
+                  <option value="audi">Audi</option>
+                  <option value="seat">SEAT</option>
+                  <option value="cupra">CUPRA</option>
+                  <option value="geely">Geely</option>
+                  <option value="omoda">Omoda</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-success btn-block" onclick="crearAgencia()">Agregar agencia</button>
+            </div>
+            <div><div id="agenciasList"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: ADMIN DASHBOARD ══ -->
+      <div id="screen-admin-dash" class="screen">
+        <div class="tabs" id="adminPeriodoTabs">
+          <button type="button" class="tab-btn active" onclick="cambiarPeriodo('dia',this)">Hoy</button>
+          <button type="button" class="tab-btn" onclick="cambiarPeriodo('semana',this)">Semana</button>
+          <button type="button" class="tab-btn" onclick="cambiarPeriodo('mes',this)">Mes</button>
+          <button type="button" class="tab-btn" onclick="cambiarPeriodo('custom',this)">Personalizado</button>
+        </div>
+        <div id="adminFiltroCustom" style="display:none;" class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Desde</label><input type="date" id="adminFiltroDesde" class="form-input"></div>
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Hasta</label><input type="date" id="adminFiltroHasta" class="form-input"></div>
+            <button type="button" class="btn btn-primary" onclick="cargarAdminDash()">Buscar</button>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box"><div class="kpi-label">Total citas</div><div class="kpi-value" id="adKpiTotal">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="adKpiLlegaron" style="color:var(--success)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="adKpiNo" style="color:var(--error)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="adKpiVentas" style="color:var(--warning)">0</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Embudo de conversión</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span style="font-weight:600;">Citas agendadas</span><span id="adEmbudoCitas" style="font-weight:700;">0</span></div><div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;"><div style="height:100%;background:#1D3885;width:100%;border-radius:99px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span style="font-weight:600;">Llegaron</span><span style="display:flex;gap:6px;"><span id="adEmbudoLlegaron" style="font-weight:700;">0</span><span id="adEmbudoTasaLlegaron" style="color:var(--success);font-size:12px;"></span></span></div><div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;"><div id="adBarLlegaron" style="height:100%;background:var(--success);width:0%;border-radius:99px;transition:width .5s;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span style="font-weight:600;">Ventas</span><span style="display:flex;gap:6px;"><span id="adEmbudoVentas" style="font-weight:700;">0</span><span id="adEmbudoTasaVentas" style="color:var(--warning);font-size:12px;"></span></span></div><div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;"><div id="adBarVentas" style="height:100%;background:var(--warning);width:0%;border-radius:99px;transition:width .5s;"></div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Citas por día de la semana</div>
+            <div style="display:flex;gap:6px;align-items:flex-end;height:100px;" id="adPorDia"></div>
+            <div style="display:flex;gap:6px;margin-top:6px;" id="adPorDiaLabels"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Horarios más frecuentes</div>
+            <div id="adPorHorario" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Por marca</div>
+            <div id="adPorMarca" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Desempeño por agencia</div>
+          <div id="adPorAgencia"></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Top asesores (ventas)</div>
+            <div id="adTopAsesores"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Vehículos más solicitados</div>
+            <div id="adTopVehiculos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: GERENTE AGENCIA ══ -->
+      <div id="screen-gerente-agencia" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:160px;"><label class="form-label">Fecha</label><input type="date" id="gaFiltroFecha" class="form-input"></div>
+            <button type="button" class="btn btn-primary" onclick="cargarGerenteAgencia()">Buscar</button>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gaKpiTotal">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gaKpiLlegaron" style="color:var(--success)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gaKpiNo" style="color:var(--error)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gaKpiVentas" style="color:var(--warning)">0</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Por asesor</div>
+            <div id="gaPorAsesor"></div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Tasa de asistencia</div>
+              <div style="font-size:48px;font-weight:900;color:var(--brand);" id="gaTasa">0%</div>
+              <div style="background:var(--border);border-radius:99px;height:10px;margin-top:12px;overflow:hidden;"><div id="gaProgressBar" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s;"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted);">
+                <span>Conv. a venta: <strong id="gaConversion" style="color:var(--warning);">0%</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Citas del día</div>
+          <div id="gaCitas"></div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: GERENTE ÁREA ══ -->
+      <div id="screen-gerente-area" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:160px;"><label class="form-label">Fecha</label><input type="date" id="gAreaFecha" class="form-input"></div>
+            <button type="button" class="btn btn-primary" onclick="cargarGerenteArea()">Buscar</button>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gAreaKpiTotal">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gAreaKpiLlegaron" style="color:var(--success)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gAreaKpiNo" style="color:var(--error)">0</div></div>
+          <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gAreaKpiVentas" style="color:var(--warning)">0</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Por agencia</div>
+            <div id="gAreaPorAgencia"></div>
+          </div>
+          <div class="card" style="border:2px dashed var(--border);background:var(--bg);">
+            <div style="text-align:center;padding:20px;">
+              <div style="font-size:40px;margin-bottom:10px;">🔗</div>
+              <div style="font-weight:700;color:var(--muted);font-size:15px;">Leads desde Kommo</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:6px;">Disponible cuando se integre Kommo CRM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN: RESUMEN MENSUAL ══ -->
+      <div id="screen-resumen-mensual" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Mes</label>
+              <select id="rmMes" class="form-select">
+                <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+                <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+                <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+                <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;width:100px;"><label class="form-label">Año</label><select id="rmAnio" class="form-select"></select></div>
+            <button type="button" class="btn btn-primary" onclick="cargarResumenMensual()">Ver resumen</button>
+            <button type="button" class="btn btn-ghost" onclick="descargarResumen()">⬇ Descargar PDF</button>
+          </div>
+        </div>
+        <div id="rmContenido"><div class="empty"><div class="empty-icon">📊</div>Selecciona un mes para ver el resumen</div></div>
+      </div>
+
+      <!-- ══ SCREEN: CHECKIN (cliente) ══ -->
+      <div id="screen-checkin" class="screen">
+        <div style="max-width:480px;margin:0 auto;">
+          <div id="checkinLoading" style="text-align:center;padding:60px;"><div class="spinner"></div></div>
+          <div id="checkinInfo" style="display:none;">
+            <div class="card">
+              <div class="qr-info-row"><span class="qr-info-label">Cliente</span><span id="ciNombre"></span></div>
+              <div class="qr-info-row"><span class="qr-info-label">Fecha</span><span id="ciFecha"></span></div>
+              <div class="qr-info-row"><span class="qr-info-label">Hora</span><span id="ciHora"></span></div>
+              <div class="qr-info-row"><span class="qr-info-label">Vehículo</span><span id="ciVehiculo"></span></div>
+              <div class="qr-info-row"><span class="qr-info-label">Asesor</span><span id="ciAsesor"></span></div>
+              <div class="qr-info-row" style="border:none"><span class="qr-info-label">Agencia</span><span id="ciAgencia"></span></div>
+            </div>
+            <button type="button" id="ciBtn" class="checkin-confirm-btn" onclick="confirmarCheckin()">✅ Confirmar mi llegada</button>
+            <div id="ciDone" class="checkin-done"><div style="font-size:48px;">✅</div><div style="color:var(--success);font-weight:800;font-size:18px;margin-top:8px;">¡Llegada confirmada!</div></div>
+            <div id="ciYaDone" style="display:none;" class="checkin-done"><div style="font-size:48px;">✓</div><div style="color:var(--success);font-weight:800;font-size:18px;margin-top:8px;">Ya registramos tu llegada</div></div>
+          </div>
+          <div id="checkinErr" style="display:none;" class="alert alert-error show"><div class="alert-title">No encontrado</div><div id="checkinErrMsg">Esta cita no existe.</div></div>
+        </div>
+      </div>
+
+    </div><!-- /main-body -->
+  </main>
+</div><!-- /app -->
+
+<!-- REAGENDA PANEL -->
 <div id="overlay" class="overlay" onclick="cerrarPanel()"></div>
 <div id="reagendaPanel" class="panel">
   <div class="panel-title">Reagendar cita</div>
   <button type="button" class="panel-close" onclick="cerrarPanel()">×</button>
-  <div class="form-group"><label class="form-label">Nueva fecha</label><input type="date" id="rgFecha" class="form-input"></div>
-  <div class="form-group">
-    <label class="form-label">Nueva hora</label>
-    <div class="time-pick">
-      <select id="rgHoraH">
-        <option value="">--</option>
-        <option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option>
-      </select>
-      <span class="time-sep">:</span>
-      <select id="rgHoraM">
-        <option value="">--</option>
-        <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
-      </select>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Nueva fecha</label><input type="date" id="rgFecha" class="form-input"></div>
+    <div class="form-group">
+      <label class="form-label">Nueva hora</label>
+      <div class="time-pick">
+        <select id="rgHoraH"><option value="">--</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option></select>
+        <span class="time-sep">:</span>
+        <select id="rgHoraM"><option value="">--</option><option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option></select>
+      </div>
     </div>
   </div>
   <div class="form-group"><label class="form-label">Nuevo asesor</label><select id="rgAsesor" class="form-select"></select></div>
   <div class="form-group"><label class="form-label">Motivo</label><textarea id="rgNotas" class="form-textarea" placeholder="¿Por qué se reagenda?"></textarea></div>
-  <button type="button" class="btn btn-primary btn-mt" onclick="guardarReagenda()" style="width:100%;margin:16px 0 0;">Guardar reagenda</button>
+  <button type="button" class="btn btn-primary btn-block" onclick="guardarReagenda()" style="margin-top:8px;">Guardar reagenda</button>
 </div>
-
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: ADMIN DASHBOARD (dueño)
-══════════════════════════════════════════════════════ -->
-<div id="screen-admin-dash" class="screen">
-  <div class="navbar" id="adminDashNavbar">
-    <div class="navbar-title">Panel General</div>
-    <div style="display:flex;gap:8px;">
-      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;" onclick="goTo('resumen-mensual')">📊 Mensual</button>
-      <button type="button" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;" onclick="goTo('admin')">⚙️ Config</button>
-      <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-
-  <div class="hero" style="padding:20px 20px 16px;">
-    <div class="brand-logo no-img" style="width:52px;height:52px;font-size:20px;margin-bottom:10px;">Z</div>
-    <h1 style="font-size:18px;">Dashboard General</h1>
-    <p id="adminDashFecha" style="font-size:12px;opacity:.8;"></p>
-  </div>
-
-  <!-- Tabs de periodo -->
-  <div style="display:flex;gap:0;padding:0 16px 12px;border-bottom:1px solid var(--border);">
-    <button type="button" id="tabDia" class="tab-btn active" onclick="cambiarPeriodo('dia',this)" style="flex:1;">Hoy</button>
-    <button type="button" id="tabSemana" class="tab-btn" onclick="cambiarPeriodo('semana',this)" style="flex:1;">Semana</button>
-    <button type="button" id="tabMes" class="tab-btn" onclick="cambiarPeriodo('mes',this)" style="flex:1;">Mes</button>
-    <button type="button" id="tabCustom" class="tab-btn" onclick="cambiarPeriodo('custom',this)" style="flex:1;">Fecha</button>
-  </div>
-
-  <!-- Filtro fecha custom -->
-  <div id="adminFiltroCustom" style="display:none;padding:10px 16px 0;gap:8px;align-items:center;flex-wrap:wrap;">
-    <input type="date" id="adminFiltroDesde" class="form-input" style="flex:1;min-width:120px;">
-    <input type="date" id="adminFiltroHasta" class="form-input" style="flex:1;min-width:120px;">
-    <button type="button" class="btn btn-primary" onclick="cargarAdminDash()" style="width:auto;margin:0;padding:10px 14px;">Buscar</button>
-  </div>
-
-  <!-- KPIs Globales -->
-  <div style="padding:12px 16px 4px;">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Resumen general</div>
-  </div>
-  <div class="kpi-strip" style="padding-top:4px;">
-    <div class="kpi-box"><div class="kpi-label">Citas</div><div class="kpi-value" id="adKpiTotal">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="adKpiLlegaron" style="color:var(--success)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="adKpiNo" style="color:var(--error)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="adKpiVentas" style="color:var(--warning)">0</div></div>
-  </div>
-
-  <!-- Embudo de conversión -->
-  <div class="card" style="margin-top:0;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Embudo de conversión</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-          <span style="font-weight:600;">Citas agendadas</span>
-          <span id="adEmbudoCitas" style="font-weight:700;">0</span>
-        </div>
-        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
-          <div style="height:100%;background:#1D3885;border-radius:99px;width:100%;"></div>
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-          <span style="font-weight:600;">Clientes llegaron</span>
-          <span style="display:flex;gap:6px;align-items:center;"><span id="adEmbudoLlegaron" style="font-weight:700;">0</span><span id="adEmbudoTasaLlegaron" style="color:var(--success);font-size:11px;"></span></span>
-        </div>
-        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
-          <div id="adBarLlegaron" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s;"></div>
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-          <span style="font-weight:600;">Ventas cerradas</span>
-          <span style="display:flex;gap:6px;align-items:center;"><span id="adEmbudoVentas" style="font-weight:700;">0</span><span id="adEmbudoTasaVentas" style="color:var(--warning);font-size:11px;"></span></span>
-        </div>
-        <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden;">
-          <div id="adBarVentas" style="height:100%;background:var(--warning);border-radius:99px;width:0%;transition:width .5s;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Por día de la semana -->
-  <div class="card" style="margin-top:0;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Citas por día</div>
-    <div id="adPorDia" style="display:flex;gap:4px;align-items:flex-end;height:80px;"></div>
-    <div id="adPorDiaLabels" style="display:flex;gap:4px;margin-top:4px;"></div>
-  </div>
-
-  <!-- Por horario -->
-  <div class="card" style="margin-top:0;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Horarios más frecuentes</div>
-    <div id="adPorHorario" style="display:flex;flex-direction:column;gap:6px;"></div>
-  </div>
-
-  <!-- Por marca -->
-  <div style="padding:4px 16px 4px;">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por marca</div>
-  </div>
-  <div id="adPorMarca" style="padding:0 16px 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;"></div>
-
-  <!-- Por agencia -->
-  <div style="padding:4px 16px 4px;">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Desempeño por agencia</div>
-  </div>
-  <div id="adPorAgencia" style="padding:0 16px 8px;"></div>
-
-  <!-- Top asesores -->
-  <div style="padding:4px 16px 4px;">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Top asesores (ventas)</div>
-  </div>
-  <div id="adTopAsesores" style="padding:0 16px 8px;"></div>
-
-  <!-- Vehículos más solicitados -->
-  <div style="padding:4px 16px 4px;">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Vehículos más solicitados</div>
-  </div>
-  <div id="adTopVehiculos" style="padding:0 16px 24px;"></div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: GERENTE DE AGENCIA
-══════════════════════════════════════════════════════ -->
-<div id="screen-gerente-agencia" class="screen">
-  <div class="navbar">
-    <div class="navbar-title" id="gaTitle">Mi Agencia</div>
-    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
-  </div>
-
-  <div class="hero" id="gaHero" style="padding:20px;">
-    <div class="brand-logo no-img" id="gaLogoBox">Z</div>
-    <h1 id="gaAgenciaNombre" style="font-size:18px;margin-top:8px;">Mi Agencia</h1>
-    <p id="gaUserNombre" style="font-size:13px;opacity:.8;"></p>
-  </div>
-
-  <!-- Filtro fecha -->
-  <div style="padding:12px 16px 0;display:flex;gap:8px;">
-    <input type="date" id="gaFiltroFecha" class="form-input" style="flex:1;">
-    <button type="button" class="btn btn-primary" onclick="cargarGerenteAgencia()" style="width:auto;margin:0;padding:12px 16px;">Buscar</button>
-  </div>
-
-  <!-- KPIs -->
-  <div class="kpi-strip">
-    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gaKpiTotal">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gaKpiLlegaron" style="color:var(--success)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gaKpiNo" style="color:var(--error)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gaKpiVentas" style="color:var(--warning)">0</div></div>
-  </div>
-
-  <!-- Tasa -->
-  <div class="card" style="margin-top:0;">
-    <div style="display:flex;justify-content:space-between;">
-      <div>
-        <div style="font-size:12px;color:var(--muted);font-weight:600;">Tasa de asistencia</div>
-        <div style="font-size:28px;font-weight:900;color:var(--brand);" id="gaTasa">0%</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:12px;color:var(--muted);">Conv. a venta</div>
-        <div style="font-size:22px;font-weight:800;color:var(--warning);" id="gaConversion">0%</div>
-      </div>
-    </div>
-    <div style="background:var(--border);border-radius:99px;height:8px;margin-top:10px;overflow:hidden;">
-      <div id="gaProgressBar" style="height:100%;background:var(--success);border-radius:99px;width:0%;transition:width .5s;"></div>
-    </div>
-  </div>
-
-  <!-- Por asesor -->
-  <div style="padding:0 16px 4px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por asesor</div>
-  </div>
-  <div id="gaPorAsesor" style="padding:0 16px 16px;"></div>
-
-  <!-- Lista de citas -->
-  <div style="padding:0 16px 4px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Citas del día</div>
-  </div>
-  <div id="gaCitas" style="padding:0 0 24px;"></div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: GERENTE DE ÁREA
-══════════════════════════════════════════════════════ -->
-<div id="screen-gerente-area" class="screen">
-  <div class="navbar">
-    <div class="navbar-title" id="gAreaTitle">Mi Área</div>
-    <button type="button" style="background:none;border:none;color:#fff;font-size:13px;cursor:pointer;" onclick="doLogout()">Salir</button>
-  </div>
-
-  <div class="hero" style="padding:20px;">
-    <div class="brand-logo no-img">Z</div>
-    <h1 id="gAreaNombre" style="font-size:18px;margin-top:8px;">Mi Área</h1>
-    <p id="gAreaUserNombre" style="font-size:13px;opacity:.8;"></p>
-  </div>
-
-  <!-- Filtro -->
-  <div style="padding:12px 16px 0;display:flex;gap:8px;">
-    <input type="date" id="gAreaFecha" class="form-input" style="flex:1;">
-    <button type="button" class="btn btn-primary" onclick="cargarGerenteArea()" style="width:auto;margin:0;padding:12px 16px;">Buscar</button>
-  </div>
-
-  <!-- KPIs -->
-  <div class="kpi-strip">
-    <div class="kpi-box"><div class="kpi-label">Total</div><div class="kpi-value" id="gAreaKpiTotal">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Llegaron</div><div class="kpi-value" id="gAreaKpiLlegaron" style="color:var(--success)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">No llegaron</div><div class="kpi-value" id="gAreaKpiNo" style="color:var(--error)">0</div></div>
-    <div class="kpi-box"><div class="kpi-label">Ventas</div><div class="kpi-value" id="gAreaKpiVentas" style="color:var(--warning)">0</div></div>
-  </div>
-
-  <!-- Por agencia del área -->
-  <div style="padding:0 16px 4px;">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Por agencia</div>
-  </div>
-  <div id="gAreaPorAgencia" style="padding:0 16px 16px;"></div>
-
-  <!-- Leads (placeholder para Kommo) -->
-  <div class="card" style="border:2px dashed var(--border);background:var(--bg);">
-    <div style="text-align:center;padding:8px;">
-      <div style="font-size:28px;">🔗</div>
-      <div style="font-weight:700;color:var(--muted);margin-top:6px;font-size:14px;">Leads desde Kommo</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Disponible cuando se integre Kommo CRM</div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: RESUMEN MENSUAL
-══════════════════════════════════════════════════════ -->
-<div id="screen-resumen-mensual" class="screen">
-  <div class="navbar">
-    <button type="button" class="navbar-back" onclick="goTo('admin-dash')">←</button>
-    <div class="navbar-title">Resumen Mensual</div>
-    <button type="button" onclick="descargarResumen()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px;">⬇ PDF</button>
-  </div>
-
-  <!-- Selector de mes -->
-  <div style="padding:14px 16px;display:flex;gap:8px;align-items:center;">
-    <select id="rmMes" class="form-select" style="flex:1;">
-      <option value="0">Enero</option>
-      <option value="1">Febrero</option>
-      <option value="2">Marzo</option>
-      <option value="3">Abril</option>
-      <option value="4">Mayo</option>
-      <option value="5">Junio</option>
-      <option value="6">Julio</option>
-      <option value="7">Agosto</option>
-      <option value="8">Septiembre</option>
-      <option value="9">Octubre</option>
-      <option value="10">Noviembre</option>
-      <option value="11">Diciembre</option>
-    </select>
-    <select id="rmAnio" class="form-select" style="width:90px;"></select>
-    <button type="button" class="btn btn-primary" onclick="cargarResumenMensual()" style="width:auto;margin:0;padding:12px 14px;">Ver</button>
-  </div>
-
-  <!-- Contenido del resumen -->
-  <div id="rmContenido" style="padding-bottom:32px;">
-    <div class="empty"><div class="empty-icon">📊</div>Selecciona un mes para ver el resumen</div>
-  </div>
-</div>
-
-</div><!-- /container -->
 
 <script>
+
 // ════════════════════════════════════════════════════════
 // FIREBASE
 // ════════════════════════════════════════════════════════
@@ -1172,16 +974,7 @@ function setBrandTheme(marca) {
 // ════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════
-function goTo(screen) {
-  if(screen !== 'scanner' && scannerActive) stopScanner();
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = $('screen-' + screen);
-  if(el) el.classList.add('active');
-  window.scrollTo(0, 0);
-  if(screen === 'llegadas') cargarLlegadas();
-  if(screen === 'admin') cargarAdmin();
-  if(screen === 'resumen-mensual') setupResumenMensual();
-}
+// goTo redefined in new layout section
 
 // ════════════════════════════════════════════════════════
 // LOGIN / LOGOUT
@@ -1210,17 +1003,7 @@ async function doLogin() {
   }
 }
 
-function doLogout() {
-  if(counterUnsub) counterUnsub();
-  currentUser = null;
-  currentAgencia = null;
-  vendedores = [];
-  $('loginUser').value = '';
-  $('loginPass').value = '';
-  document.documentElement.style.removeProperty('--brand');
-  document.documentElement.style.removeProperty('--brand-accent');
-  goTo('login');
-}
+// doLogout defined in new layout section
 
 // ════════════════════════════════════════════════════════
 // SETUP HOME
@@ -1809,57 +1592,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Save session on login success
 const _origSetupHome = setupHome;
-// patch login to save session
-const _origDoLogin = doLogin;
-async function doLogin() {
-  const user = $('loginUser').value.trim().toLowerCase();
-  const pass = $('loginPass').value;
-  if(!user || !pass) { showAlert('loginError','error','Error','Ingresa usuario y contraseña'); return; }
-  hideAlert('loginError');
-  try {
-    const snap = await db.collection('usuarios_citas')
-      .where('username','==', user).where('password','==', pass).where('activo','==', true).get();
-    if(snap.empty) { showAlert('loginError','error','Error','Usuario o contraseña incorrectos'); return; }
-    const data = snap.docs[0].data();
-    currentUser = { ...data, id: snap.docs[0].id };
-    currentAgencia = data.agencia || null;
-    sessionStorage.setItem('zm_citas_user', JSON.stringify(currentUser));
-    await cargarVendedores();
-    await cargarVehiculos();
-    routeByRole();
-  } catch(e) { showAlert('loginError','error','Error de conexión', e.message); }
-}
-
-function doLogout() {
-  if(counterUnsub) counterUnsub();
-  sessionStorage.removeItem('zm_citas_user');
-  currentUser=null; currentAgencia=null; vendedores=[]; vehiculos=[];
-  $('loginUser').value=''; $('loginPass').value='';
-  document.documentElement.style.removeProperty('--brand');
-  document.documentElement.style.removeProperty('--brand-accent');
-  goTo('login');
-}
+// doLogin defined in new layout section
+// doLogout redefined in new layout section
 
 // ════════════════════════════════════════════════════════
 // ROLE-BASED ROUTING
 // ════════════════════════════════════════════════════════
-function routeByRole() {
-  const rol = currentUser?.rol;
-  if(rol === 'admin') {
-    setupAdminDash();
-    goTo('admin-dash');
-  } else if(rol === 'gerente_agencia') {
-    setupGerenteAgencia();
-    goTo('gerente-agencia');
-  } else if(rol === 'gerente_area') {
-    setupGerenteArea();
-    goTo('gerente-area');
-  } else {
-    // piso
-    setupHome();
-    goTo('home');
-  }
-}
+// routeByRole redefined in new layout section
 
 // ════════════════════════════════════════════════════════
 // ADMIN DASHBOARD
@@ -2566,9 +2305,118 @@ function descargarResumen() {
   ventana.document.close();
 }
 
-// Setup resumen mensual when navigating to it
-// (goTo already handles this via the main function)
 
+
+
+
+// ════════════════════════════════════════════════════════
+// NEW LAYOUT HELPERS
+// ════════════════════════════════════════════════════════
+const ROLE_LABELS = {
+  admin: 'Administrador', gerente_agencia: 'Gerente de Agencia',
+  gerente_area: 'Gerente de Área', piso: 'Asesor de Piso'
+};
+
+const ROLE_NAV = {
+  admin: [
+    {icon:'📊', label:'Dashboard', screen:'admin-dash'},
+    {icon:'📆', label:'Resumen mensual', screen:'resumen-mensual'},
+    {icon:'⚙️', label:'Configuración', screen:'admin'},
+  ],
+  gerente_agencia: [
+    {icon:'📊', label:'Mi agencia', screen:'gerente-agencia'},
+    {icon:'✅', label:'Llegadas', screen:'llegadas'},
+    {icon:'📋', label:'Corte del día', screen:'corte'},
+  ],
+  gerente_area: [
+    {icon:'📊', label:'Mi área', screen:'gerente-area'},
+    {icon:'✅', label:'Llegadas', screen:'llegadas'},
+  ],
+  piso: [
+    {icon:'🏠', label:'Inicio', screen:'home'},
+    {icon:'✅', label:'Llegadas', screen:'llegadas'},
+    {icon:'📅', label:'Nueva cita', screen:'form'},
+    {icon:'📱', label:'Escáner QR', screen:'scanner'},
+    {icon:'📋', label:'Corte del día', screen:'corte'},
+  ],
+};
+
+function buildSidebar() {
+  const rol = currentUser?.rol||'piso';
+  const marca = currentUser?.agenciaMarca||null;
+
+  // Logo
+  setLogo('sidebarLogoBox', marca);
+  $('sidebarAgencia').textContent = currentUser?.agencia||'Z Motors';
+  $('sidebarUserName').textContent = currentUser?.nombre||currentUser?.username||'';
+  $('sidebarUserRole').textContent = ROLE_LABELS[rol]||rol;
+
+  // Nav items
+  const nav = ROLE_NAV[rol]||ROLE_NAV.piso;
+  $('sidebarNav').innerHTML = nav.map(n=>`
+    <div class="nav-item" id="nav-${n.screen}" onclick="goTo('${n.screen}')">
+      <span class="nav-icon">${n.icon}</span>
+      <span>${n.label}</span>
+    </div>`).join('');
+}
+
+function setActiveNav(screen) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el = $('nav-'+screen);
+  if(el) el.classList.add('active');
+}
+
+function toggleSidebar() {
+  $('sidebar').classList.toggle('open');
+}
+
+// Override goTo with new version
+function goTo(screen) {
+  if(screen !== 'scanner' && scannerActive) stopScanner();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = $('screen-'+screen);
+  if(el) el.classList.add('active');
+  setActiveNav(screen);
+  // Update header title
+  const nav = ROLE_NAV[currentUser?.rol||'piso']||[];
+  const item = nav.find(n=>n.screen===screen);
+  if(item) {
+    $('mainTitle').textContent = item.label;
+    $('mainSub').textContent = currentUser?.agencia||'Z Motors';
+  }
+  // Close mobile sidebar
+  $('sidebar')?.classList.remove('open');
+  window.scrollTo(0,0);
+  if(screen==='llegadas') cargarLlegadas();
+  if(screen==='admin') cargarAdmin();
+  if(screen==='resumen-mensual') setupResumenMensual();
+  if(screen==='admin-dash') setupAdminDash();
+  if(screen==='gerente-agencia') setupGerenteAgencia();
+  if(screen==='gerente-area') setupGerenteArea();
+}
+
+// Override routeByRole to show app layout
+function routeByRole() {
+  $('screen-login').classList.add('hidden');
+  $('appLayout').style.display = 'flex';
+  setBrandTheme(currentUser?.agenciaMarca||null);
+  buildSidebar();
+  const rol = currentUser?.rol||'piso';
+  const firstScreen = (ROLE_NAV[rol]||ROLE_NAV.piso)[0]?.screen||'home';
+  goTo(firstScreen);
+}
+
+// Override doLogout
+function doLogout() {
+  if(counterUnsub) counterUnsub();
+  sessionStorage.removeItem('zm_citas_user');
+  currentUser=null; currentAgencia=null; vendedores=[]; vehiculos=[];
+  $('loginUser').value=''; $('loginPass').value='';
+  $('appLayout').style.display='none';
+  $('screen-login').classList.remove('hidden');
+  document.documentElement.style.removeProperty('--brand');
+  document.documentElement.style.removeProperty('--brand-accent');
+}
 </script>
 </body>
 </html>

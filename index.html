@@ -1189,11 +1189,11 @@ async function doLogin() {
 function setupHome() {
   const marca = currentUser.agenciaMarca || null;
   setBrandTheme(marca);
-  setLogo('loginLogoBox', marca);
-  setLogo('homeLogoBox', marca);
-  $('homeAgenciaName').textContent = currentUser.agencia || 'Z Motors';
-  $('homeUserName').textContent = currentUser.nombre || currentUser.username;
-  $('adminMenuCard').style.display = currentUser.rol === 'admin' ? 'flex' : 'none';
+  if($('loginLogoBox')) setLogo('loginLogoBox', marca);
+  if($('homeLogoBox')) setLogo('homeLogoBox', marca);
+  if($('homeAgenciaName')) $('homeAgenciaName').textContent = currentUser.agencia || 'Z Motors';
+  if($('homeUserName')) $('homeUserName').textContent = currentUser.nombre || currentUser.username;
+  if($('adminMenuCard')) $('adminMenuCard').style.display = currentUser.rol === 'admin' ? 'flex' : 'none';
   setupContador();
   poblarAsesoresForm();
   poblarVehiculosForm();
@@ -1209,7 +1209,7 @@ function setupContador() {
   const man = new Date(hoy); man.setDate(man.getDate()+1);
   let q = db.collection('citas_agencia').where('fechaCita','>=',hoy).where('fechaCita','<',man);
   if(currentUser.rol !== 'admin') q = q.where('agencia','==', currentAgencia);
-  counterUnsub = q.onSnapshot(snap => { $('homeCounter').textContent = snap.size; });
+  counterUnsub = q.onSnapshot(snap => { if($('homeCounter')) $('homeCounter').textContent = snap.size; });
 }
 
 // ════════════════════════════════════════════════════════
@@ -1480,15 +1480,13 @@ function startScanner() {
   scannerInst.start({facingMode:'environment'},{fps:10,qrbox:{width:220,height:220}},
     onScan, ()=>{}).then(()=>{
     scannerActive=true;
-    $('scanBtn').textContent='Detener cámara';
-    $('scanBtn').className='btn btn-error';
+    if($('scanBtn')) { $('scanBtn').textContent='Detener cámara'; $('scanBtn').className='btn btn-error btn-block'; }
   }).catch(e=>alert('Error cámara: '+e));
 }
 function stopScanner() {
   if(scannerInst) scannerInst.stop().then(()=>{
     scannerActive=false;
-    $('scanBtn').textContent='Iniciar cámara';
-    $('scanBtn').className='btn btn-primary';
+    if($('scanBtn')) { $('scanBtn').textContent='Iniciar cámara'; $('scanBtn').className='btn btn-primary btn-block'; }
   }).catch(()=>{});
 }
 function onScan(text) {
@@ -2657,13 +2655,15 @@ function goTo(screen) {
 
 // Override routeByRole to show app layout
 function routeByRole() {
+  // Show app layout first so all DOM elements exist
   $('screen-login').classList.add('hidden');
   $('appLayout').style.display = 'flex';
   setBrandTheme(currentUser?.agenciaMarca||null);
   buildSidebar();
   const rol = currentUser?.rol||'piso';
   const firstScreen = (ROLE_NAV[rol]||ROLE_NAV.piso)[0]?.screen||'home';
-  goTo(firstScreen);
+  // Small delay to ensure DOM is rendered before setup functions run
+  setTimeout(() => goTo(firstScreen), 50);
 }
 
 // Override doLogout

@@ -1172,10 +1172,10 @@ async function doLogin() {
     const data = snap.docs[0].data();
     currentUser = { ...data, id: snap.docs[0].id };
     currentAgencia = data.agencia || null;
+    sessionStorage.setItem('zm_citas_user', JSON.stringify(currentUser));
     await cargarVendedores();
     await cargarVehiculos();
-    setupHome();
-    goTo('home');
+    routeByRole();
   } catch(e) {
     showAlert('loginError','error','Error de conexión', e.message);
   }

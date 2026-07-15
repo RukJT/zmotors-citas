@@ -824,16 +824,6 @@
           <div id="gaCitas"></div>
         </div>
 
-        <!-- Leads placeholder -->
-        <div class="card" style="border:2px dashed #0070C0;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="font-size:32px;">🔗</div>
-            <div>
-              <div style="font-weight:800;font-size:15px;color:#1E40AF;">Estadísticas de leads</div>
-              <div style="font-size:13px;color:#3B82F6;margin-top:3px;">Disponible cuando se conecte el CRM</div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ══ SCREEN: GERENTE ÁREA ══ -->
@@ -871,16 +861,6 @@
           </div>
         </div>
 
-        <!-- Leads placeholder -->
-        <div class="card" style="border:2px dashed #0070C0;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="font-size:32px;">🔗</div>
-            <div>
-              <div style="font-weight:800;font-size:15px;color:#1E40AF;">Estadísticas de leads del área</div>
-              <div style="font-size:13px;color:#3B82F6;margin-top:3px;">Disponible cuando se conecte el CRM</div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ══ SCREEN: ESTADÍSTICAS DE LEADS ══ -->
@@ -915,16 +895,6 @@
           </div>
         </div>
 
-        <!-- Banner Kommo pendiente -->
-        <div id="leadsKommoBanner" class="card" style="border:2px dashed #0070C0;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);display:none;">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="font-size:36px;">🔗</div>
-            <div>
-              <div style="font-weight:800;font-size:16px;color:#1E40AF;">Integración con el CRM pendiente</div>
-              <div style="font-size:13px;color:#3B82F6;margin-top:4px;">Los datos de leads aparecerán aquí automáticamente cuando se conecte el CRM. La estructura ya está lista.</div>
-            </div>
-          </div>
-        </div>
 
         <!-- KPIs de leads -->
         <div class="kpi-grid" id="leadsKpiGrid">
@@ -2804,7 +2774,7 @@ function renderLeadsStats() {
 
   if(total===0) {
     ['leadsEstatus','leadsFuentes','leadsPorAgencia','leadsPorAsesor','leadsModelos','leadsTendencia','leadsTendenciaLabels']
-      .forEach(id=>{ const el=$(id); if(el) el.innerHTML='<div class="empty">Sin datos — pendiente integración con el CRM</div>'; });
+      .forEach(id=>{ const el=$(id); if(el) el.innerHTML='<div class="empty">Sin datos para el período seleccionado</div>'; });
     return;
   }
 

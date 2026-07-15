@@ -2663,6 +2663,12 @@ function goTo(screen) {
   $('sidebar')?.classList.remove('open');
   window.scrollTo(0,0);
   if(screen==='llegadas') cargarLlegadas();
+  if(screen==='form') {
+    Promise.all([cargarVendedores(), cargarVehiculos()]).then(()=>{
+      poblarAsesoresForm();
+      poblarVehiculosForm();
+    });
+  }
   if(screen==='admin') cargarAdmin();
   if(screen==='resumen-mensual') setupResumenMensual();
   if(screen==='admin-dash') setupAdminDash();

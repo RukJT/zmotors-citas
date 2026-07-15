@@ -470,10 +470,6 @@
               <div class="card-title">Datos del cliente</div>
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Asesor</label>
-                  <select id="formAsesor" class="form-select"><option value="">Seleccionar...</option></select>
-                </div>
-                <div class="form-group">
                   <label class="form-label">Nombre del cliente</label>
                   <input type="text" id="formNombre" class="form-input" placeholder="Nombre completo">
                 </div>
@@ -1250,6 +1246,7 @@ async function cargarVehiculos() {
 
 function poblarAsesoresForm() {
   const sel = $('formAsesor');
+  if(!sel) return;
   sel.innerHTML = '<option value="">Seleccionar asesor...</option>';
   vendedores.forEach(v => {
     const o = document.createElement('option');
@@ -1276,7 +1273,7 @@ async function registrarCita() {
   const tel = $('formTelefono').value.replace(/\D/g,'');
   const vehiculo = $('formVehiculo').value;
   const tipo = $('formTipo').value;
-  const asesor = $('formAsesor').value;
+  const asesor = currentUser.nombre || currentUser.username;
   const fechaStr = $('formFecha').value;
   const hh = $('formHoraH').value;
   const mm = $('formHoraM').value;
@@ -1288,7 +1285,6 @@ async function registrarCita() {
   if(!fuente) { showAlert('formAlert','error','Falta info','Selecciona la fuente'); return; }
   if(tel.length !== 10) { showAlert('formAlert','error','Teléfono inválido','Debe tener 10 dígitos'); return; }
   if(!vehiculo) { showAlert('formAlert','error','Falta info','Selecciona el vehículo de interés'); return; }
-  if(!asesor) { showAlert('formAlert','error','Falta info','Selecciona el asesor'); return; }
   if(!fechaStr) { showAlert('formAlert','error','Falta info','Selecciona la fecha de cita'); return; }
   if(!hh || !mm) { showAlert('formAlert','error','Falta info','Selecciona la hora de cita'); return; }
 
@@ -1362,7 +1358,6 @@ function resetForm() {
   $('formNombre').value='';
   $('formTelefono').value='';
   $('formVehiculo').value='';
-  $('formAsesor').value='';
   $('formFuente').value='';
   $('formComentarios').value='';
   $('formHoraH').value='';
@@ -2664,10 +2659,7 @@ function goTo(screen) {
   window.scrollTo(0,0);
   if(screen==='llegadas') cargarLlegadas();
   if(screen==='form') {
-    Promise.all([cargarVendedores(), cargarVehiculos()]).then(()=>{
-      poblarAsesoresForm();
-      poblarVehiculosForm();
-    });
+    cargarVehiculos().then(()=>{ poblarVehiculosForm(); });
   }
   if(screen==='admin') cargarAdmin();
   if(screen==='resumen-mensual') setupResumenMensual();

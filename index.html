@@ -507,6 +507,20 @@
                     <option value="Otro">Otro</option>
                   </select>
                 </div>
+                <div class="form-group">
+                  <label class="form-label">Fuente</label>
+                  <select id="formFuente" class="form-select">
+                    <option value="">Seleccionar...</option>
+                    <option value="Piso">Piso</option>
+                    <option value="Cartera">Cartera</option>
+                    <option value="BDC">BDC</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Telefono">Teléfono</option>
+                    <option value="Sitio Web">Sitio Web</option>
+                    <option value="Importador">Importador</option>
+                    <option value="Lead">Lead</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -1267,9 +1281,11 @@ async function registrarCita() {
   const hh = $('formHoraH').value;
   const mm = $('formHoraM').value;
   const prospecto = $('formProspecto').value;
+  const fuente = $('formFuente').value;
   const comentarios = $('formComentarios').value.trim();
 
   if(!nombre) { showAlert('formAlert','error','Falta info','Ingresa el nombre del cliente'); return; }
+  if(!fuente) { showAlert('formAlert','error','Falta info','Selecciona la fuente'); return; }
   if(tel.length !== 10) { showAlert('formAlert','error','Teléfono inválido','Debe tener 10 dígitos'); return; }
   if(!vehiculo) { showAlert('formAlert','error','Falta info','Selecciona el vehículo de interés'); return; }
   if(!asesor) { showAlert('formAlert','error','Falta info','Selecciona el asesor'); return; }
@@ -1300,7 +1316,7 @@ async function registrarCita() {
       asistio: '',
       creadoPor: currentUser.nombre || currentUser.username,
       creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
-      fuente: 'manual',
+      fuente: fuente,
     });
 
     mostrarQR({ citaId, nombre, telefono: tel, vehiculo, asesor,
@@ -1325,7 +1341,8 @@ function mostrarQR(data) {
 
   let tel = data.telefono.replace(/\D/g,'');
   if(tel.length === 10) tel = '52' + tel;
-  const msg = `🚗 *Z Motors — Confirmación de Cita*\n\nHola ${data.nombre}, tu cita está confirmada:\n\n📅 Fecha: ${data.fechaStr}\n⏰ Hora: ${data.hora}\n🚙 Vehículo: ${data.vehiculo}\n👤 Asesor: ${data.asesor}\n\n📲 Confirma tu llegada con este enlace:\n${url}\n\n_Z Motors - Te esperamos_`;
+  const nombreAgencia = data.agencia || 'Z Motors';
+  const msg = `🚗 *${nombreAgencia} — Confirmación de Cita*\n\nHola ${data.nombre}, tu cita está confirmada:\n\n📅 Fecha: ${data.fechaStr}\n⏰ Hora: ${data.hora}\n🚙 Vehículo: ${data.vehiculo}\n👤 Asesor: ${data.asesor}\n\n📲 Confirma tu llegada con este enlace:\n${url}\n\n_${nombreAgencia} — Te esperamos_`;
   $('btnWA').href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
 
   $('qrBox').classList.add('show');
@@ -1346,6 +1363,7 @@ function resetForm() {
   $('formTelefono').value='';
   $('formVehiculo').value='';
   $('formAsesor').value='';
+  $('formFuente').value='';
   $('formComentarios').value='';
   $('formHoraH').value='';
   $('formHoraM').value='';

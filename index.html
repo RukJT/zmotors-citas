@@ -6,6 +6,7 @@
   <title>Z Motors — Sistema de Citas</title>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
   <style>
@@ -982,6 +983,27 @@
         <div id="rmContenido"><div class="empty"><div class="empty-icon">📊</div>Selecciona un mes para ver el resumen</div></div>
       </div>
 
+      <!-- ══ SCREEN: REPORTE PRODUCTIVIDAD ══ -->
+      <div id="screen-reporte-prod" class="screen">
+        <div class="card">
+          <div id="rpTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Mes</label>
+              <select id="rpMes" class="form-select">
+                <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+                <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+                <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+                <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;width:100px;"><label class="form-label">Año</label><select id="rpAnio" class="form-select"></select></div>
+            <button type="button" class="btn btn-primary" onclick="cargarReporteProd()">Generar reporte</button>
+            <button type="button" class="btn btn-ghost" onclick="imprimirReporteProd()">🖨 Imprimir / PDF</button>
+          </div>
+        </div>
+        <div id="rpContenido"><div class="empty"><div class="empty-icon">🏆</div>Selecciona un mes para generar el reporte</div></div>
+      </div>
+
       <!-- ══ SCREEN: CHECKIN (cliente) ══ -->
       <div id="screen-checkin" class="screen">
         <div style="max-width:480px;margin:0 auto;">
@@ -1143,13 +1165,21 @@ async function doLogin() {
   if(!user || !pass) { showAlert('loginError','error','Error','Ingresa usuario y contraseña'); return; }
   hideAlert('loginError');
   try {
+    // Autenticación real con Firebase Auth (username → correo interno)
+    const email = user.includes('@') ? user : (user + '@zmotors.app');
+    await firebase.auth().signInWithEmailAndPassword(email, pass);
+    // Cargar perfil (rol, agencia) desde Firestore
     const snap = await db.collection('usuarios_citas')
       .where('username','==', user)
-      .where('password','==', pass)
       .where('activo','==', true)
       .get();
-    if(snap.empty) { showAlert('loginError','error','Error','Usuario o contraseña incorrectos'); return; }
+    if(snap.empty) {
+      await firebase.auth().signOut();
+      showAlert('loginError','error','Error','Tu usuario no tiene perfil activo. Contacta al administrador.');
+      return;
+    }
     const data = snap.docs[0].data();
+    delete data.password; // nunca conservar contraseñas en el cliente
     currentUser = { ...data, id: snap.docs[0].id };
     currentAgencia = data.agencia || null;
     sessionStorage.setItem('zm_citas_user', JSON.stringify(currentUser));
@@ -1157,7 +1187,11 @@ async function doLogin() {
     await cargarVehiculos();
     routeByRole();
   } catch(e) {
-    showAlert('loginError','error','Error de conexión', e.message);
+    const code = (e && e.code) || '';
+    const msg = (code.includes('invalid') || code.includes('wrong-password') || code.includes('user-not-found') || code.includes('credential'))
+      ? 'Usuario o contraseña incorrectos'
+      : 'Error de conexión: ' + (e.message || e);
+    showAlert('loginError','error','Error', msg);
   }
 }
 
@@ -1603,6 +1637,18 @@ async function eliminarAgencia(id) {
   await cargarAdmin();
 }
 
+async function apiAdminUsuarios(payload) {
+  const token = await firebase.auth().currentUser.getIdToken();
+  const r = await fetch('/api/admin-usuarios', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if(!r.ok || !j.ok) throw new Error(j.error || 'Error del servidor');
+  return j;
+}
+
 async function crearUsuario() {
   const username=$('nuUser').value.trim().toLowerCase();
   const pass=$('nuPass').value;
@@ -1610,10 +1656,14 @@ async function crearUsuario() {
   const agencia=$('nuAgencia').value;
   const rol=$('nuRol').value;
   if(!username||!pass||!nombre||!agencia) { alert('Completa todos los campos'); return; }
-  const ag=agencias.find(a=>a.nombre===agencia);
-  await db.collection('usuarios_citas').add({username,password:pass,nombre,agencia,agenciaMarca:ag?.marca||'',rol,activo:true});
-  $('nuUser').value='';$('nuPass').value='';$('nuNombre').value='';
-  await cargarUsuariosAdmin();
+  if(pass.length<6) { alert('La contraseña debe tener al menos 6 caracteres'); return; }
+  try {
+    const ag=agencias.find(a=>a.nombre===agencia);
+    await apiAdminUsuarios({accion:'crear', username, password:pass, nombre, agencia, agenciaMarca:ag?.marca||'', rol});
+    $('nuUser').value='';$('nuPass').value='';$('nuNombre').value='';
+    await cargarUsuariosAdmin();
+    alert('Usuario creado ✅ Ya puede iniciar sesión.');
+  } catch(e) { alert('Error: '+e.message); }
 }
 
 async function cargarUsuariosAdmin() {
@@ -1657,17 +1707,19 @@ async function cargarUsuariosAdmin() {
 async function cambiarPassword(id,nombre){
   const nueva=prompt(`Nueva contraseña para ${nombre}:`);
   if(nueva===null) return;
-  if(nueva.length<4){ alert('La contraseña debe tener al menos 4 caracteres'); return; }
+  if(nueva.length<6){ alert('La contraseña debe tener al menos 6 caracteres'); return; }
   try{
-    await db.collection('usuarios_citas').doc(id).update({password:nueva});
+    await apiAdminUsuarios({accion:'password', docId:id, password:nueva});
     alert(`Contraseña de ${nombre} actualizada ✅`);
   }catch(e){ alert('Error al actualizar: '+e.message); }
 }
 
 async function eliminarUsuario(id) {
-  if(!confirm('¿Eliminar usuario?')) return;
-  await db.collection('usuarios_citas').doc(id).delete();
-  await cargarUsuariosAdmin();
+  if(!confirm('¿Eliminar usuario? También perderá su acceso.')) return;
+  try {
+    await apiAdminUsuarios({accion:'eliminar', docId:id});
+    await cargarUsuariosAdmin();
+  } catch(e) { alert('Error: '+e.message); }
 }
 
 async function crearAsesor() {
@@ -1723,43 +1775,43 @@ let checkinDocId = null;
 
 async function cargarCheckin(citaId) {
   try {
-    const snap=await db.collection('citas_agencia').where('citaId','==',citaId).get();
-    if(snap.empty) {
-      $('checkinLoading').style.display='none';
-      $('checkinErr').style.display='block';
-      return;
-    }
-    const doc=snap.docs[0]; const c=doc.data();
-    checkinDocId=doc.id;
-    const marca=c.agenciaMarca||null;
+    const r = await fetch('/api/checkin?id=' + encodeURIComponent(citaId));
+    const j = await r.json();
+    if(!r.ok || !j.ok) throw new Error(j.error || 'Cita no encontrada');
+    const c = j.cita;
+    checkinDocId = citaId;
+    const marca = c.agenciaMarca || null;
     setBrandTheme(marca);
-    setLogo('checkinLogoBox',marca);
-    const fechaDate=c.fechaCita?.toDate?c.fechaCita.toDate():new Date(c.fechaCita);
-    $('ciNombre').textContent=c.nombre;
-    $('ciFecha').textContent=fmtFecha(fechaDate);
-    $('ciHora').textContent=c.horaCita;
-    $('ciVehiculo').textContent=c.vehiculo;
-    $('ciAsesor').textContent=c.asesor;
-    $('ciAgencia').textContent=c.agencia;
+    setLogo('checkinLogoBox', marca);
+    $('ciNombre').textContent = c.nombre;
+    $('ciFecha').textContent = c.fechaISO ? fmtFecha(new Date(c.fechaISO)) : '';
+    $('ciHora').textContent = c.horaCita || '';
+    $('ciVehiculo').textContent = c.vehiculo || '';
+    $('ciAsesor').textContent = c.asesor || '';
+    $('ciAgencia').textContent = c.agencia || '';
     $('checkinLoading').style.display='none';
     $('checkinInfo').style.display='block';
-    if(c.asistio==='Si') {
+    if(c.asistio === 'Si' || c.asistio === 'Venta') {
       $('ciBtn').style.display='none';
       $('ciYaDone').style.display='block';
     }
   } catch(e) {
     $('checkinLoading').style.display='none';
     $('checkinErr').style.display='block';
-    $('checkinErrMsg').textContent='Error: '+e.message;
+    if($('checkinErrMsg')) $('checkinErrMsg').textContent='Error: '+e.message;
   }
 }
 
 async function confirmarCheckin() {
   if(!checkinDocId) return;
   try {
-    await db.collection('citas_agencia').doc(checkinDocId).update({
-      asistio:'Si', fechaCheckin:firebase.firestore.FieldValue.serverTimestamp()
+    const r = await fetch('/api/checkin', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: checkinDocId })
     });
+    const j = await r.json();
+    if(!r.ok || !j.ok) throw new Error(j.error || 'No se pudo confirmar');
     $('ciBtn').style.display='none';
     $('ciDone').classList.add('show');
   } catch(e) { alert('Error: '+e.message); }
@@ -1776,17 +1828,29 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCheckin(checkinId);
     return;
   }
-  // Restore session from sessionStorage
-  const saved = sessionStorage.getItem('zm_citas_user');
-  if(saved) {
+  // Restaurar sesión solo si Firebase Auth tiene usuario válido
+  firebase.auth().onAuthStateChanged(async (fbUser) => {
+    if (currentUser) return; // ya hay sesión activa en esta pestaña
+    if (!fbUser) { sessionStorage.removeItem('zm_citas_user'); return; }
     try {
-      currentUser = JSON.parse(saved);
-      currentAgencia = currentUser.agencia;
-      Promise.all([cargarVendedores(), cargarVehiculos()]).then(()=>{
-        routeByRole();
-      });
-    } catch(e) { sessionStorage.removeItem('zm_citas_user'); }
-  }
+      const username = (fbUser.email || '').split('@')[0];
+      let perfil = null;
+      const saved = sessionStorage.getItem('zm_citas_user');
+      if (saved) {
+        try { const p = JSON.parse(saved); if (p.username === username) perfil = p; } catch(e) {}
+      }
+      if (!perfil) {
+        const snap = await db.collection('usuarios_citas').where('username','==',username).where('activo','==',true).get();
+        if (snap.empty) { await firebase.auth().signOut(); return; }
+        perfil = { ...snap.docs[0].data(), id: snap.docs[0].id };
+        delete perfil.password;
+      }
+      currentUser = perfil;
+      currentAgencia = perfil.agencia || null;
+      sessionStorage.setItem('zm_citas_user', JSON.stringify(currentUser));
+      Promise.all([cargarVendedores(), cargarVehiculos()]).then(()=>routeByRole());
+    } catch(e) { console.error('restore session:', e); }
+  });
 });
 
 // Save session on login success
@@ -2587,6 +2651,214 @@ function descargarResumen() {
 
 
 // ════════════════════════════════════════════════════════
+// REPORTE MENSUAL DE PRODUCTIVIDAD (por agencia)
+// Visible para: admin (con pestañas por agencia) y gerente_agencia (solo la suya)
+// Metas: 1 cita por día hábil (L-V) por asesor · Objetivo de asistencia 80%
+// ════════════════════════════════════════════════════════
+let rpAgenciaSel = null;
+
+function diasHabilesMes(anio, mes) {
+  let n = 0; const d = new Date(anio, mes, 1);
+  while (d.getMonth() === mes) { const w = d.getDay(); if (w >= 1 && w <= 5) n++; d.setDate(d.getDate() + 1); }
+  return n;
+}
+function diasHabilesTranscurridos(anio, mes) {
+  const hoy = new Date(); let n = 0; const d = new Date(anio, mes, 1);
+  while (d.getMonth() === mes && d <= hoy) { const w = d.getDay(); if (w >= 1 && w <= 5) n++; d.setDate(d.getDate() + 1); }
+  return n;
+}
+
+async function setupReporteProd() {
+  const hoy = new Date();
+  const anioSel = $('rpAnio');
+  if (anioSel && !anioSel.options.length) {
+    for (let y = hoy.getFullYear(); y >= hoy.getFullYear() - 2; y--) {
+      const o = document.createElement('option'); o.value = y; o.textContent = y; anioSel.appendChild(o);
+    }
+    $('rpMes').value = hoy.getMonth();
+    $('rpAnio').value = hoy.getFullYear();
+  }
+  if (currentUser.rol === 'admin') {
+    if (!agencias || !agencias.length) {
+      try {
+        const snap = await db.collection('agencias_citas').get();
+        agencias = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error(e); }
+    }
+    if (!rpAgenciaSel && agencias.length) rpAgenciaSel = agencias[0].nombre;
+  } else {
+    rpAgenciaSel = currentUser.agencia;
+  }
+  rpRenderTabs();
+  if (rpAgenciaSel) cargarReporteProd();
+}
+
+function rpRenderTabs() {
+  const tabs = $('rpTabs');
+  if (!tabs) return;
+  if (currentUser.rol !== 'admin') { tabs.innerHTML = ''; return; }
+  tabs.innerHTML = agencias.map((a, i) =>
+    `<button type="button" class="btn btn-sm ${a.nombre === rpAgenciaSel ? 'btn-primary' : 'btn-ghost'}" onclick="rpSelAgencia(${i})">${esc(a.nombre)}</button>`
+  ).join('');
+}
+
+function rpSelAgencia(i) {
+  rpAgenciaSel = agencias[i]?.nombre || null;
+  rpRenderTabs();
+  cargarReporteProd();
+}
+
+async function cargarReporteProd() {
+  if (!rpAgenciaSel) { $('rpContenido').innerHTML = '<div class="empty">Sin agencia seleccionada</div>'; return; }
+  const mes = parseInt($('rpMes').value);
+  const anio = parseInt($('rpAnio').value);
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const desde = new Date(anio, mes, 1);
+  const hasta = new Date(anio, mes + 1, 1);
+  $('rpContenido').innerHTML = '<div style="text-align:center;padding:50px;"><div class="spinner"></div></div>';
+
+  try {
+    const [snapC, snapU, snapA] = await Promise.all([
+      db.collection('citas_agencia').where('fechaCita', '>=', desde).where('fechaCita', '<', hasta).get(),
+      db.collection('usuarios_citas').get(),
+      db.collection('asesores_citas').get()
+    ]);
+    const citas = snapC.docs.map(d => d.data()).filter(x => x.agencia === rpAgenciaSel);
+
+    // Plantilla de asesores: cuentas de piso de la agencia + catálogo + los que aparezcan en citas
+    const roster = new Set();
+    snapU.docs.map(d => d.data()).filter(u => u.agencia === rpAgenciaSel && u.rol === 'piso').forEach(u => roster.add(u.nombre));
+    snapA.docs.map(d => d.data()).filter(a => a.agencia === rpAgenciaSel).forEach(a => roster.add(a.nombre));
+    citas.forEach(x => { if (x.asesor) roster.add(x.asesor); });
+
+    const stats = {};
+    roster.forEach(n => stats[n] = { citas: 0, asis: 0, ventas: 0 });
+    citas.forEach(x => {
+      const a = x.asesor || 'Sin asignar';
+      if (!stats[a]) stats[a] = { citas: 0, asis: 0, ventas: 0 };
+      stats[a].citas++;
+      if (x.asistio === 'Si' || x.asistio === 'Venta') stats[a].asis++;
+      if (x.asistio === 'Venta') stats[a].ventas++;
+    });
+
+    const dh = diasHabilesMes(anio, mes);
+    const hoy = new Date();
+    const esMesActual = hoy.getFullYear() === anio && hoy.getMonth() === mes;
+    const esFuturo = desde > hoy;
+    const dhTrans = esMesActual ? diasHabilesTranscurridos(anio, mes) : dh;
+    const corteTxt = esFuturo ? 'Mes sin iniciar' : (esMesActual ? `Día hábil ${dhTrans} de ${dh}` : `Día hábil ${dh} de ${dh} · Mes cerrado`);
+
+    const objAsesor = dh; // 1 cita por día hábil por asesor
+    const filas = Object.entries(stats).sort((a, b) => b[1].citas - a[1].citas);
+    const numAsesores = Math.max(filas.length, 1);
+    const metaAgencia = objAsesor * numAsesores;
+    const metaAsis = Math.round(metaAgencia * 0.8);
+    const totC = citas.length;
+    const totAsis = citas.filter(x => x.asistio === 'Si' || x.asistio === 'Venta').length;
+    const totV = citas.filter(x => x.asistio === 'Venta').length;
+    const pctAsis = totC > 0 ? Math.round(totAsis / totC * 1000) / 10 : 0;
+    const pctAvTotal = metaAgencia > 0 ? Math.round(totC / metaAgencia * 1000) / 10 : 0;
+
+    function semaforo(p) {
+      if (p >= 100) return '<span style="background:#DCFCE7;color:#166534;font-size:11px;font-weight:800;padding:3px 12px;border-radius:12px;">EN RUTA</span>';
+      if (p >= 80) return '<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 12px;border-radius:12px;">ATENCIÓN</span>';
+      return '<span style="background:#FEE2E2;color:#991B1B;font-size:11px;font-weight:800;padding:3px 12px;border-radius:12px;">RIESGO</span>';
+    }
+    function colorPct(p) { return p >= 100 ? '#16A34A' : (p >= 80 ? '#D97706' : '#B91C1C'); }
+
+    const filasHtml = filas.map(([nombre, s]) => {
+      const av = objAsesor > 0 ? Math.round(s.citas / objAsesor * 1000) / 10 : 0;
+      const pa = s.citas > 0 ? Math.round(s.asis / s.citas * 100) : 0;
+      return `<tr style="border-bottom:1px solid #F1F5F9;">
+        <td style="padding:12px 14px;font-weight:600;">${esc(nombre)}</td>
+        <td style="padding:12px 14px;text-align:center;">${objAsesor}</td>
+        <td style="padding:12px 14px;text-align:center;">${s.citas}</td>
+        <td style="padding:12px 14px;text-align:center;font-weight:800;color:${colorPct(av)};">${av}%</td>
+        <td style="padding:12px 14px;text-align:center;">${s.asis}</td>
+        <td style="padding:12px 14px;text-align:center;font-weight:700;color:${colorPct(pa)};">${pa}%</td>
+        <td style="padding:12px 14px;text-align:center;">${semaforo(av)}</td>
+      </tr>`;
+    }).join('');
+
+    function kpi(label, valor, sub, destacar) {
+      return `<div class="card" style="text-align:center;${destacar ? 'background:#FEF2F2;' : ''}margin:0;">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;">${label}</div>
+        <div style="font-size:34px;font-weight:900;margin:6px 0;${destacar ? 'color:#B91C1C;' : ''}">${valor}</div>
+        <div style="font-size:12px;color:var(--muted);">${sub}</div>
+      </div>`;
+    }
+
+    $('rpContenido').innerHTML = `
+      <div id="rpReporte">
+        <div style="background:#111827;color:#fff;border-radius:12px 12px 0 0;padding:12px 20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;font-weight:800;letter-spacing:.5px;">
+          <span>REPORTE MENSUAL BDC</span>
+          <span style="color:#C9A860;">${esc(rpAgenciaSel)} · ${MESES[mes]} ${anio}</span>
+        </div>
+        <div class="card" style="border-radius:0 0 12px 12px;margin-top:0;">
+          <div style="font-size:22px;font-weight:900;">Reporte mensual de productividad</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px;">Fuerza de ventas — ${esc(rpAgenciaSel)}</div>
+          <div style="font-size:13px;margin-top:4px;">Corte: <b>${esMesActual ? 'Al día de hoy' : `Cierre de ${MESES[mes].toLowerCase()} ${anio}`}</b> · ${corteTxt}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0;">
+          ${kpi('Citas del mes', totC, 'Meta: ' + metaAgencia, false)}
+          ${kpi('Asistidas', totAsis, 'Meta: ' + metaAsis, false)}
+          ${kpi('% Asistencia', pctAsis + '%', 'Objetivo: 80%', pctAsis < 80)}
+          ${kpi('Ventas', totV, 'Del período', false)}
+        </div>
+
+        <div class="card" style="padding:0;overflow-x:auto;">
+          <div style="background:#111827;color:#fff;padding:12px 16px;font-weight:800;font-size:13px;letter-spacing:.5px;border-radius:12px 12px 0 0;">AVANCE POR ASESOR</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:640px;">
+            <thead>
+              <tr style="background:#C9A860;color:#111827;">
+                <th style="padding:10px 14px;text-align:left;">Asesor</th>
+                <th style="padding:10px 14px;">Obj. mes</th>
+                <th style="padding:10px 14px;">Citas mes</th>
+                <th style="padding:10px 14px;">% Avance</th>
+                <th style="padding:10px 14px;">Asistidas</th>
+                <th style="padding:10px 14px;">% Asist.</th>
+                <th style="padding:10px 14px;">Semáforo</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasHtml || '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">Sin citas registradas en el período</td></tr>'}
+              <tr style="background:#111827;color:#fff;font-weight:800;">
+                <td style="padding:12px 14px;color:#C9A860;">TOTAL AGENCIA</td>
+                <td style="padding:12px 14px;text-align:center;">${metaAgencia}</td>
+                <td style="padding:12px 14px;text-align:center;">${totC}</td>
+                <td style="padding:12px 14px;text-align:center;color:#C9A860;">${pctAvTotal}%</td>
+                <td style="padding:12px 14px;text-align:center;">${totAsis}</td>
+                <td style="padding:12px 14px;text-align:center;">${pctAsis}%</td>
+                <td style="padding:12px 14px;"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:10px 4px;">
+          <span><b>Leyenda:</b></span>
+          <span>🟢 EN RUTA ≥ meta mensual</span>
+          <span>🟡 ATENCIÓN 80–100%</span>
+          <span>🔴 RIESGO &lt; 80% de la meta</span>
+          <span style="margin-left:auto;">Meta: 1 cita por día hábil por asesor · Asistencia objetivo 80%</span>
+        </div>
+      </div>`;
+  } catch (e) {
+    $('rpContenido').innerHTML = '<div class="empty">Error al generar: ' + esc(e.message) + '</div>';
+  }
+}
+
+function imprimirReporteProd() {
+  const rep = $('rpReporte');
+  if (!rep) { alert('Primero genera el reporte'); return; }
+  const v = window.open('', '_blank');
+  v.document.write(`<html><head><title>Reporte mensual de productividad</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111;} .card{border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin:8px 0;} table{width:100%;border-collapse:collapse;} .empty{display:none;} @media print{button{display:none;}}</style>
+    </head><body>${rep.outerHTML}<script>window.onload=()=>window.print();<\/script></body></html>`);
+  v.document.close();
+}
+
+// ════════════════════════════════════════════════════════
 // NEW LAYOUT HELPERS
 // ════════════════════════════════════════════════════════
 const ROLE_LABELS = {
@@ -2599,10 +2871,12 @@ const ROLE_NAV = {
     {icon:'📊', label:'Dashboard', screen:'admin-dash'},
     {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'📆', label:'Resumen mensual', screen:'resumen-mensual'},
+    {icon:'🏆', label:'Reporte productividad', screen:'reporte-prod'},
     {icon:'⚙️', label:'Configuración', screen:'admin'},
   ],
   gerente_agencia: [
     {icon:'📊', label:'Mi agencia', screen:'gerente-agencia'},
+    {icon:'🏆', label:'Reporte productividad', screen:'reporte-prod'},
     {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
     {icon:'📋', label:'Corte del día', screen:'corte'},
@@ -2673,6 +2947,7 @@ function goTo(screen) {
   }
   if(screen==='admin') cargarAdmin();
   if(screen==='resumen-mensual') setupResumenMensual();
+  if(screen==='reporte-prod') setupReporteProd();
   if(screen==='admin-dash') setupAdminDash();
   if(screen==='gerente-agencia') setupGerenteAgencia();
   if(screen==='gerente-area') setupGerenteArea();
@@ -2695,6 +2970,7 @@ function routeByRole() {
 // Override doLogout
 function doLogout() {
   if(counterUnsub) counterUnsub();
+  firebase.auth().signOut().catch(()=>{});
   sessionStorage.removeItem('zm_citas_user');
   currentUser=null; currentAgencia=null; vendedores=[]; vehiculos=[];
   $('loginUser').value=''; $('loginPass').value='';

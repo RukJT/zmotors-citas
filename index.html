@@ -615,11 +615,11 @@
 
       <!-- ══ SCREEN: ADMIN CONFIG ══ -->
       <div id="screen-admin" class="screen">
-        <div class="tabs">
-          <button type="button" class="tab-btn active" onclick="switchTab('usuarios',this)">Usuarios</button>
-          <button type="button" class="tab-btn" onclick="switchTab('asesores',this)">Asesores</button>
-          <button type="button" class="tab-btn" onclick="switchTab('vehiculos',this)">Vehículos</button>
-          <button type="button" class="tab-btn" onclick="switchTab('agencias',this)">Agencias</button>
+        <div class="tabs" id="adminTabs">
+          <button type="button" class="tab-btn active" data-tab="usuarios" onclick="switchTab('usuarios',this)">Usuarios</button>
+          <button type="button" class="tab-btn" data-tab="asesores" onclick="switchTab('asesores',this)">Asesores</button>
+          <button type="button" class="tab-btn" data-tab="vehiculos" onclick="switchTab('vehiculos',this)">Vehículos</button>
+          <button type="button" class="tab-btn" data-tab="agencias" onclick="switchTab('agencias',this)">Agencias</button>
         </div>
         <div id="tab-usuarios" class="tab-content active">
           <div class="grid-2">
@@ -633,8 +633,9 @@
                 <div class="form-group"><label class="form-label">Rol</label>
                   <select id="nuRol" class="form-select">
                     <option value="piso">Asesor de piso</option>
-                    <option value="gerente_agencia">Gerente de agencia</option>
+                    <option value="recepcion">Recepción</option>
                     <option value="gerente_area">Gerente de área</option>
+                    <option value="gerente_agencia">Gerente de agencia</option>
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
@@ -1595,9 +1596,58 @@ function switchTab(name, btn) {
 }
 
 let agencias=[];
+
+function ajustarTabsConfigPorRol() {
+  const rol = currentUser?.rol;
+  const tabsContainer = document.getElementById('adminTabs');
+  if(!tabsContainer) return;
+  const tabs = tabsContainer.querySelectorAll('.tab-btn');
+  // Permisos por rol
+  const permisos = {
+    admin:            ['usuarios','asesores','vehiculos','agencias'],
+    gerente_agencia:  ['usuarios','asesores','vehiculos','agencias'],
+    gerente_area:     ['asesores'],
+  };
+  const permitidas = permisos[rol] || [];
+  let primeraVisible = null;
+  tabs.forEach(btn => {
+    const tab = btn.getAttribute('data-tab');
+    if(permitidas.includes(tab)) {
+      btn.style.display = '';
+      if(!primeraVisible) primeraVisible = btn;
+    } else {
+      btn.style.display = 'none';
+      btn.classList.remove('active');
+    }
+  });
+  // Activar la primera pestaña visible si la actual no lo está
+  if(primeraVisible && !tabsContainer.querySelector('.tab-btn.active[style=""]')) {
+    // Simular clic en la primera visible
+    switchTab(primeraVisible.getAttribute('data-tab'), primeraVisible);
+  }
+  // Ajustar opciones del rol en el select "Nuevo usuario"
+  const selRol = document.getElementById('nuRol');
+  if(selRol) {
+    const rolesPermitidos = {
+      admin: ['piso','gerente_area','gerente_agencia','recepcion','admin'],
+      gerente_agencia: ['piso','gerente_area','recepcion'],
+      gerente_area: ['piso'],
+    };
+    const permitidosParaEste = rolesPermitidos[rol] || [];
+    Array.from(selRol.options).forEach(op => {
+      op.style.display = permitidosParaEste.includes(op.value) ? '' : 'none';
+    });
+    // Si el valor actual no está permitido, seleccionar el primero disponible
+    if(!permitidosParaEste.includes(selRol.value) && permitidosParaEste.length) {
+      selRol.value = permitidosParaEste[0];
+    }
+  }
+}
+
 async function cargarAdmin() {
   const snap=await db.collection('agencias_citas').get();
   agencias=snap.docs.map(d=>({id:d.id,...d.data()}));
+  ajustarTabsConfigPorRol();
   renderAgencias();
   poblarAgenciasAdmin();
   cargarUsuariosAdmin();

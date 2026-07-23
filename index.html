@@ -495,16 +495,6 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Tipo de prospecto</label>
-                  <select id="formProspecto" class="form-select">
-                    <option value="Digital">Digital</option>
-                    <option value="Showroom">Showroom</option>
-                    <option value="Telefono">Teléfono</option>
-                    <option value="Referido">Referido</option>
-                    <option value="Otro">Otro</option>
-                  </select>
-                </div>
-                <div class="form-group">
                   <label class="form-label">Fuente</label>
                   <select id="formFuente" class="form-select">
                     <option value="">Seleccionar...</option>
@@ -1282,7 +1272,6 @@ async function registrarCita() {
   const fechaStr = $('formFecha').value;
   const hh = $('formHoraH').value;
   const mm = $('formHoraM').value;
-  const prospecto = $('formProspecto').value;
   const fuente = $('formFuente').value;
   const comentarios = $('formComentarios').value.trim();
 
@@ -1313,7 +1302,7 @@ async function registrarCita() {
       agencia: currentAgencia,
       agenciaMarca: currentUser.agenciaMarca || '',
       fechaCita: fechaDate, horaCita: hora,
-      prospecto, comentarios,
+      comentarios,
       asistio: '',
       creadoPor: currentUser.nombre || currentUser.username,
       creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1411,10 +1400,19 @@ function renderLlegadas() {
 
   list.innerHTML = [...citasHoy]
     .sort((a,b)=>(a.horaCita||'').localeCompare(b.horaCita||''))
-    .map(c => `
+    .map(c => {
+      const horaLlegada = c.fechaCheckin ? fmtHoraFromTS(c.fechaCheckin) : '';
+      const infoLlegada = (c.asistio==='Si' || c.asistio==='Venta') && horaLlegada
+        ? `<div class="cita-time" style="color:#059669;">✅ Llegó a las ${esc(horaLlegada)} <button type="button" onclick="editarHoraLlegada('${c.docId}')" style="background:none;border:none;color:#2563EB;cursor:pointer;font-size:12px;text-decoration:underline;">editar</button></div>`
+        : '';
+      return `
       <div class="cita-card ${c.asistio==='Si'?'llegó':c.asistio==='No'?'no-llegó':c.asistio==='Venta'?'venta':''}">
         <div class="cita-top">
-          <div><div class="cita-name">${esc(c.nombre)}</div><div class="cita-time">⏰ ${esc(c.horaCita)} · ${esc(c.asesor)}</div></div>
+          <div>
+            <div class="cita-name">${esc(c.nombre)}</div>
+            <div class="cita-time">⏰ Cita ${esc(c.horaCita)} · ${esc(c.asesor)}</div>
+            ${infoLlegada}
+          </div>
           <span class="badge ${badgeClass(c.asistio)}">${badgeText(c.asistio)}</span>
         </div>
         <div class="cita-details">🚗 ${esc(c.vehiculo)} · ${esc(c.tipo||'')}${c.agencia && currentUser?.rol==='admin'?' · '+esc(c.agencia):''}</div>
@@ -1424,7 +1422,39 @@ function renderLlegadas() {
           <button type="button" class="btn btn-warning btn-sm" onclick="marcar('${c.docId}','Venta')">Venta</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="abrirReagenda('${c.docId}')">Reagendar</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+}
+
+// Formatea un Timestamp de Firestore a HH:MM
+function fmtHoraFromTS(ts) {
+  try {
+    const d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d)) return '';
+    return d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', hour12:false });
+  } catch(e) { return ''; }
+}
+
+// Permite editar manualmente la hora en que llegó el cliente
+async function editarHoraLlegada(docId) {
+  const cita = citasHoy.find(c=>c.docId===docId);
+  if(!cita) return;
+  const actual = cita.fechaCheckin ? fmtHoraFromTS(cita.fechaCheckin) : '';
+  const nueva = prompt(`Hora de llegada de ${cita.nombre}\n(formato 24h, ej: 15:30)`, actual);
+  if(nueva===null) return;
+  if(!/^\d{1,2}:\d{2}$/.test(nueva)) { alert('Formato inválido. Usa HH:MM (ej: 15:30)'); return; }
+  const [hh, mm] = nueva.split(':').map(Number);
+  if(hh<0 || hh>23 || mm<0 || mm>59) { alert('Hora inválida'); return; }
+  // Combinar con la fecha de la cita
+  const fechaBase = cita.fechaCita?.toDate ? cita.fechaCita.toDate() : new Date(cita.fechaCita);
+  fechaBase.setHours(hh, mm, 0, 0);
+  try {
+    await db.collection('citas_agencia').doc(docId).update({
+      fechaCheckin: firebase.firestore.Timestamp.fromDate(fechaBase),
+      horaLlegadaEditada: true,
+    });
+    await cargarLlegadas();
+  } catch(e) { alert('Error: '+e.message); }
 }
 
 async function marcar(docId, estado) {

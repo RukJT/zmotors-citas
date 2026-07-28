@@ -1161,14 +1161,26 @@ async function doLogin() {
     // Persistencia LOCAL: la sesión sobrevive recargas y pestañas nuevas (fix sesión fantasma)
     try { await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) { console.warn('setPersistence:', e); }
     await firebase.auth().signInWithEmailAndPassword(email, pass);
-    // Cargar perfil (rol, agencia) desde Firestore
-    const snap = await db.collection('usuarios_citas')
-      .where('username','==', user)
-      .where('activo','==', true)
-      .get();
-    if(snap.empty) {
-      await firebase.auth().signOut();
-      showAlert('loginError','error','Error','Tu usuario no tiene perfil activo. Contacta al administrador.');
+    // Cargar perfil (rol, agencia) desde Firestore.
+    // El token de auth puede tardar un instante en propagarse a Firestore,
+    // así que reintentamos la lectura antes de rendirnos (evita falso "sin permisos").
+    let snap = null;
+    for (let intento = 1; intento <= 4; intento++) {
+      try {
+        snap = await db.collection('usuarios_citas')
+          .where('username','==', user)
+          .where('activo','==', true)
+          .get();
+        break; // lectura exitosa
+      } catch (err) {
+        if (intento === 4) throw err; // agotados los reintentos, que lo maneje el catch general
+        await new Promise(r => setTimeout(r, 350 * intento)); // espera creciente y reintenta
+      }
+    }
+    if(!snap || snap.empty) {
+      // NO cerramos sesión: el usuario ya está autenticado. Mostramos aviso y dejamos
+      // que el guardia onAuthStateChanged restaure el perfil cuando el token propague.
+      showAlert('loginError','error','Aviso','No se pudo cargar tu perfil al instante. Recarga la página en unos segundos.');
       return;
     }
     const data = snap.docs[0].data();
@@ -1222,13 +1234,28 @@ function setupContador() {
 // ════════════════════════════════════════════════════════
 // VENDEDORES / VEHICULOS
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// Helper: reintenta una lectura de Firestore mientras el token
+// de auth se propaga (evita 'Missing or insufficient permissions'
+// justo después del login).
+async function getConReintento(query, intentos = 4) {
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      return await query.get();
+    } catch (err) {
+      if (i === intentos) throw err;
+      await new Promise(r => setTimeout(r, 350 * i));
+    }
+  }
+}
+
 async function cargarVendedores() {
   try {
     let q = db.collection('asesores_citas');
     if(currentUser.rol !== 'admin') q = q.where('agencia','==', currentAgencia);
-    const snap = await q.get();
+    const snap = await getConReintento(q);
     vendedores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('cargarVendedores:', e.code || e.message); }
 }
 
 let vehiculos = [];
@@ -1236,9 +1263,9 @@ async function cargarVehiculos() {
   try {
     let q = db.collection('vehiculos_citas');
     if(currentUser.rol !== 'admin') q = q.where('agencia','==', currentAgencia);
-    const snap = await q.get();
+    const snap = await getConReintento(q);
     vehiculos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('cargarVehiculos:', e.code || e.message); }
 }
 
 function poblarAsesoresForm() {

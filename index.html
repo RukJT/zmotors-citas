@@ -1158,6 +1158,8 @@ async function doLogin() {
   try {
     // Autenticación real con Firebase Auth (username → correo interno)
     const email = user.includes('@') ? user : (user + '@zmotors.app');
+    // Persistencia LOCAL: la sesión sobrevive recargas y pestañas nuevas (fix sesión fantasma)
+    try { await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) { console.warn('setPersistence:', e); }
     await firebase.auth().signInWithEmailAndPassword(email, pass);
     // Cargar perfil (rol, agencia) desde Firestore
     const snap = await db.collection('usuarios_citas')
@@ -1911,7 +1913,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restaurar sesión solo si Firebase Auth tiene usuario válido
   firebase.auth().onAuthStateChanged(async (fbUser) => {
     if (currentUser) return; // ya hay sesión activa en esta pestaña
-    if (!fbUser) { sessionStorage.removeItem('zm_citas_user'); return; }
+    if (!fbUser) {
+      // Firebase no tiene sesión: limpiar y evitar pantalla "fantasma" logueada sin permisos
+      sessionStorage.removeItem('zm_citas_user');
+      if (currentUser) { currentUser = null; location.reload(); }
+      return;
+    }
     try {
       const username = (fbUser.email || '').split('@')[0];
       let perfil = null;

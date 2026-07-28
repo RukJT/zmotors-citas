@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -855,6 +856,59 @@
 
       </div>
 
+      <!-- ══ SCREEN: IMPORTAR CITAS DESDE EXCEL ══ -->
+      <div id="screen-import-excel" class="screen">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:6px;">Importar citas desde Excel</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+            Sube el Excel del formulario (Form_Responses). Las citas se reparten automáticamente
+            a cada asesor según la columna <strong>NOMBRE DEL ASESOR</strong>.
+          </p>
+          <label id="impDrop" style="display:block;border:1.5px dashed var(--border,#ccc);border-radius:12px;padding:32px;text-align:center;cursor:pointer;">
+            <input type="file" id="impFile" accept=".xlsx,.xls" style="display:none;">
+            <div style="font-size:15px;">Haz clic para elegir el archivo Excel</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px;">Formato .xlsx del Google Forms</div>
+          </label>
+        </div>
+
+        <div id="impResult" class="hidden">
+          <!-- Resumen -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div><strong id="impFileName"></strong> <span style="color:var(--muted);font-size:12px;" id="impFileMeta"></span></div>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="impReset()">Cargar otro</button>
+            </div>
+            <div id="impStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;"></div>
+          </div>
+
+          <!-- Reparto por asesor -->
+          <div class="card">
+            <div class="card-title" style="margin:0 0 12px;">Reparto por asesor</div>
+            <div id="impByAsesor"></div>
+          </div>
+
+          <!-- Sin asignar -->
+          <div id="impBadCard" class="card hidden">
+            <div class="card-title" style="margin:0 0 6px;color:var(--warning);">Filas sin asesor reconocido</div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+              Se importarán como <strong>Sin asignar</strong>. Un gerente puede reasignarlas después.
+            </p>
+            <div id="impBadList" style="max-height:220px;overflow:auto;"></div>
+          </div>
+
+          <!-- Vista previa + confirmar -->
+          <div class="card">
+            <div class="card-title" style="margin:0 0 12px;">Vista previa</div>
+            <div id="impPreview" style="max-height:340px;overflow:auto;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px;">
+              <span id="impDupNote" style="font-size:12px;color:var(--muted);"></span>
+              <button type="button" class="btn btn-success" id="impConfirmBtn" onclick="impImportar()">Confirmar e importar</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <!-- ══ SCREEN: ESTADÍSTICAS DE LEADS ══ -->
       <div id="screen-leads-stats" class="screen">
         <!-- Filtros -->
@@ -1248,6 +1302,223 @@ async function getConReintento(query, intentos = 4) {
     }
   }
 }
+
+// ════════════════════════════════════════════════════════
+// IMPORTADOR DE CITAS DESDE EXCEL (gerente de área / admin)
+// ════════════════════════════════════════════════════════
+let IMP_PARSED = [];   // citas listas para escribir
+let IMP_BAD = [];      // filas sin asesor reconocido
+
+// Alias: texto del Excel (normalizado) -> texto que debe buscarse entre los asesores reales
+const IMP_ALIAS = {
+  'juan jo': 'juan jose',   // el Excel trunca "Juan José"
+  'bo sergio': 'sergio',    // Bo Sergio es el mismo que Sergio
+};
+
+function impNorm(s){
+  if(s==null) return '';
+  return String(s).trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // quita acentos (Germán = German)
+    .replace(/\s+/g,' ');
+}
+function impTel10(v){
+  if(v==null) return '';
+  let d = String(v).replace(/\D/g,'');
+  if(d.length>10) d = d.slice(-10);
+  return d;
+}
+function impFechaDate(v){
+  // SheetJS con cellDates:true entrega Date
+  if(v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+  if(typeof v==='string'){ const m=v.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); }
+  return null;
+}
+function impHoraHM(v){
+  if(v instanceof Date && !isNaN(v))
+    return String(v.getUTCHours()).padStart(2,'0')+':'+String(v.getUTCMinutes()).padStart(2,'0');
+  if(typeof v==='number'){ const mins=Math.round(v*24*60); return String(Math.floor(mins/60)%24).padStart(2,'0')+':'+String(mins%60).padStart(2,'0'); }
+  if(typeof v==='string'){ const m=v.match(/(\d{1,2}):(\d{2})/); if(m) return m[1].padStart(2,'0')+':'+m[2]; }
+  return '';
+}
+// lee una celda tolerando espacios/acentos/saltos de línea en el encabezado
+function impCol(row, ...names){
+  const keys = Object.keys(row);
+  for(const n of names){
+    const hit = keys.find(k => impNorm(k)===impNorm(n));
+    if(hit!=null) return row[hit];
+  }
+  return '';
+}
+// resuelve el nombre del Excel contra los asesores REALES cargados en `vendedores`
+function impResolverAsesor(txtExcel){
+  let key = impNorm(txtExcel);
+  if(!key) return null;
+  if(IMP_ALIAS[key]) key = IMP_ALIAS[key];
+  // buscar por nombre normalizado en la lista real de asesores
+  const hit = (vendedores||[]).find(v => impNorm(v.nombre) === key);
+  return hit ? hit.nombre : null;   // devuelve el nombre EXACTO tal como está en la base
+}
+
+function setupImportExcel(){
+  impReset();
+  const fileInput = $('impFile');
+  if(fileInput && !fileInput._wired){
+    fileInput._wired = true;
+    fileInput.addEventListener('change', e => { if(e.target.files[0]) impLeerArchivo(e.target.files[0]); });
+  }
+}
+
+function impReset(){
+  IMP_PARSED = []; IMP_BAD = [];
+  const r = $('impResult'); if(r) r.classList.add('hidden');
+  const f = $('impFile'); if(f) f.value='';
+}
+
+function impLeerArchivo(file){
+  $('impFileName').textContent = file.name;
+  $('impFileMeta').textContent = '· ' + (file.size/1024).toFixed(0) + ' KB';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      impProcesar(rows);
+    }catch(err){
+      alert('No se pudo leer el Excel: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function impProcesar(rows){
+  IMP_PARSED = []; IMP_BAD = [];
+  const seen = new Set(); let dups = 0;
+  const marca = currentUser.agenciaMarca || '';
+
+  for(const r of rows){
+    const asesorTxt = impCol(r, 'NOMBRE DEL ASESOR');
+    const cliente = String(impCol(r, 'Nombre completo del cliente')||'').trim();
+    if(!cliente && !impNorm(asesorTxt)) continue; // fila vacía
+
+    const asesorReal = impResolverAsesor(asesorTxt);   // nombre exacto de la base, o null
+    const fechaDate = impFechaDate(impCol(r, 'Fecha de la cita'));
+    const hora = impHoraHM(impCol(r, 'Hora de la cita'));
+    const tel = impTel10(impCol(r, 'Celular'));
+    const fechaKey = fechaDate ? fechaDate.toISOString().slice(0,10) : '';
+
+    // dedup determinista: mismo cliente+fecha+hora+tel = misma cita
+    const dedup = (impNorm(cliente)+'|'+fechaKey+'|'+hora+'|'+tel);
+    if(seen.has(dedup)){ dups++; continue; }
+    seen.add(dedup);
+
+    const asisteRaw = impCol(r, 'ASISTE');
+    const asiste = (asisteRaw===true || impNorm(asisteRaw)==='true' || impNorm(asisteRaw)==='si' || impNorm(asisteRaw)==='sí');
+
+    const cita = {
+      // mismo esquema que registrarCita()
+      citaId: genId(),
+      nombre: cliente,
+      telefono: tel,
+      vehiculo: String(impCol(r,'Auto de interés')||'').trim(),
+      tipo: '',
+      asesor: asesorReal || '',           // nombre real de la base (proyección automática)
+      agencia: currentAgencia,
+      agenciaMarca: marca,
+      fechaCita: fechaDate,
+      horaCita: hora,
+      comentarios: String(impCol(r,'COMENTARIO GERENTE')||'').trim(),
+      asistio: asiste ? 'Si' : '',        // valores reales del sistema
+      creadoPor: (currentUser.nombre||currentUser.username) + ' (import)',
+      fuente: impNorm(impCol(r,'FUENTE')),
+      origen: 'excel_import',
+      _asesorExcel: String(asesorTxt||'(vacío)'),
+    };
+    if(!asesorReal) IMP_BAD.push(cita);
+    IMP_PARSED.push(cita);
+  }
+  impRender(dups);
+}
+
+function impRender(dups){
+  $('impResult').classList.remove('hidden');
+  const total = IMP_PARSED.length, bad = IMP_BAD.length, ok = total - bad;
+
+  const byA = {};
+  IMP_PARSED.forEach(c => { const k = c.asesor || '(sin asignar)'; byA[k]=(byA[k]||0)+1; });
+
+  $('impStats').innerHTML = [
+    ['#0e8f4c', ok, 'asignadas'],
+    [bad? '#c9922b':'#888', bad, 'sin asignar'],
+    ['#333', total, 'total'],
+  ].map(([c,n,l])=>`<div style="background:var(--bg2,#f4f4f5);border-radius:10px;padding:10px 14px;min-width:90px;">
+      <div style="font-size:22px;font-weight:700;color:${c};">${n}</div>
+      <div style="font-size:12px;color:var(--muted);">${l}</div></div>`).join('');
+
+  $('impByAsesor').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    Object.entries(byA).sort((a,b)=>b[1]-a[1]).map(([n,c])=>
+      `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">${esc(n)}</td>
+           <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${c}</td></tr>`).join('') +
+    '</table>';
+
+  const badCard = $('impBadCard');
+  if(bad>0){
+    badCard.classList.remove('hidden');
+    $('impBadList').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      IMP_BAD.map(c=>`<tr><td style="padding:5px 8px;border-bottom:1px solid #eee;">${esc(c.nombre||'—')}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #eee;">${c.fechaCita?fmtFecha(c.fechaCita):'—'}</td>
+        <td style="padding:5px 8px;border-bottom:1px solid #eee;color:#c9922b;">${esc(c._asesorExcel)}</td></tr>`).join('') +
+      '</table>';
+  } else badCard.classList.add('hidden');
+
+  $('impPreview').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+    '<tr style="color:var(--muted);text-align:left;"><th style="padding:6px 8px;">Cliente</th><th style="padding:6px 8px;">Fecha</th><th style="padding:6px 8px;">Hora</th><th style="padding:6px 8px;">Vehículo</th><th style="padding:6px 8px;">Asesor</th><th style="padding:6px 8px;">Asistió</th></tr>' +
+    IMP_PARSED.slice(0,15).map(c=>`<tr>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${esc(c.nombre||'—')}</td>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${c.fechaCita?fmtFecha(c.fechaCita):'—'}</td>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${esc(c.horaCita||'—')}</td>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${esc(c.vehiculo||'—')}</td>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${c.asesor?esc(c.asesor):'<span style=\"color:#c9922b;\">sin asignar</span>'}</td>
+      <td style="padding:5px 8px;border-bottom:1px solid #eee;">${c.asistio==='Si'?'Sí':'—'}</td></tr>`).join('') +
+    '</table>' + (total>15?`<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px;">… y ${total-15} más</div>`:'');
+
+  $('impDupNote').textContent = dups>0
+    ? `Se omitieron ${dups} fila(s) duplicada(s) dentro del Excel.`
+    : 'Sin duplicados dentro del archivo.';
+}
+
+async function impImportar(){
+  const btn = $('impConfirmBtn');
+  if(!IMP_PARSED.length){ alert('No hay citas para importar.'); return; }
+  if(!confirm(`¿Importar ${IMP_PARSED.length} citas a ${currentAgencia}?`)) return;
+  btn.disabled = true; btn.textContent = 'Importando…';
+  try{
+    let escritas = 0;
+    // batches de 400 (límite Firestore = 500)
+    for(let i=0;i<IMP_PARSED.length;i+=400){
+      const batch = db.batch();
+      for(const c of IMP_PARSED.slice(i,i+400)){
+        const { _asesorExcel, origen, ...clean } = c; // no guardamos campos auxiliares
+        const ref = db.collection('citas_agencia').doc();
+        batch.set(ref, {
+          ...clean,
+          creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        escritas++;
+      }
+      await batch.commit();
+      btn.textContent = `Importando… ${escritas}/${IMP_PARSED.length}`;
+    }
+    btn.textContent = '✓ Importado';
+    alert(`✓ ${escritas} citas importadas correctamente. Cada asesor ya verá las suyas.`);
+    setTimeout(()=>{ impReset(); btn.disabled=false; btn.textContent='Confirmar e importar'; }, 1500);
+  }catch(err){
+    console.error('impImportar:', err);
+    alert('Error al importar: ' + (err.message||err));
+    btn.disabled=false; btn.textContent='Reintentar';
+  }
+}
+
 
 async function cargarVendedores() {
   try {
@@ -2997,6 +3268,7 @@ const ROLE_NAV = {
     {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'📆', label:'Resumen mensual', screen:'resumen-mensual'},
     {icon:'🏆', label:'Reporte productividad', screen:'reporte-prod'},
+    {icon:'📥', label:'Importar citas', screen:'import-excel'},
     {icon:'⚙️', label:'Configuración', screen:'admin'},
   ],
   gerente_agencia: [
@@ -3010,6 +3282,7 @@ const ROLE_NAV = {
     {icon:'📊', label:'Mi área', screen:'gerente-area'},
     {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
+    {icon:'📥', label:'Importar citas', screen:'import-excel'},
   ],
   piso: [
     {icon:'🏠', label:'Inicio', screen:'home'},
@@ -3076,6 +3349,7 @@ function goTo(screen) {
   if(screen==='admin-dash') setupAdminDash();
   if(screen==='gerente-agencia') setupGerenteAgencia();
   if(screen==='gerente-area') setupGerenteArea();
+  if(screen==='import-excel') setupImportExcel();
   if(screen==='leads-stats') setupLeadsStats();
 }
 

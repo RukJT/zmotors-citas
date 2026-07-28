@@ -444,6 +444,27 @@
         </div>
       </div>
 
+      <!-- ══ SCREEN: MIS CITAS (asesor) ══ -->
+      <div id="screen-mis-citas" class="screen">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;flex:1;min-width:180px;">
+              <label class="form-label">Ver</label>
+              <select id="misCitasFiltro" class="form-select" onchange="renderMisCitas()">
+                <option value="pendientes">Pendientes (próximas)</option>
+                <option value="hoy">Solo hoy</option>
+                <option value="todas">Todas</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="cargarMisCitas()" style="align-self:flex-end;">Actualizar</button>
+          </div>
+          <div id="misCitasKpi" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;"></div>
+        </div>
+        <div id="misCitasList">
+          <div class="empty"><div class="empty-icon">📋</div>Cargando tus citas...</div>
+        </div>
+      </div>
+
       <!-- ══ SCREEN: LLEGADAS ══ -->
       <div id="screen-llegadas" class="screen">
         <div class="card">
@@ -1665,6 +1686,109 @@ function resetForm() {
 // ════════════════════════════════════════════════════════
 // LLEGADAS
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// MIS CITAS (vista del asesor: sus citas asignadas)
+// ════════════════════════════════════════════════════════
+let misCitas = [];
+async function cargarMisCitas() {
+  const cont = $('misCitasList');
+  const miNombre = currentUser?.nombre || currentUser?.username;
+  try {
+    let q = db.collection('citas_agencia').where('asesor','==', miNombre);
+    if(currentUser?.rol !== 'admin') q = q.where('agencia','==', currentAgencia);
+    const snap = await getConReintento(q);
+    misCitas = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    renderMisCitas();
+  } catch(e) {
+    console.error('cargarMisCitas:', e.code || e.message);
+    if(cont) cont.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>No se pudieron cargar tus citas. Intenta de nuevo.</div>';
+  }
+}
+
+function renderMisCitas() {
+  const cont = $('misCitasList');
+  const kpi = $('misCitasKpi');
+  const filtro = $('misCitasFiltro')?.value || 'pendientes';
+  if(!cont) return;
+
+  // fecha de hoy a medianoche para comparar
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const finHoy = new Date(hoy); finHoy.setDate(finHoy.getDate()+1);
+
+  const toDate = c => c.fechaCita?.toDate ? c.fechaCita.toDate() : (c.fechaCita instanceof Date ? c.fechaCita : new Date(c.fechaCita));
+
+  let lista = [...misCitas];
+  if(filtro === 'pendientes') {
+    // pendientes = sin marcar asistencia y de hoy en adelante
+    lista = lista.filter(c => (!c.asistio || c.asistio==='') && toDate(c) >= hoy);
+  } else if(filtro === 'hoy') {
+    lista = lista.filter(c => { const d = toDate(c); return d >= hoy && d < finHoy; });
+  }
+  // ordenar por fecha y luego hora
+  lista.sort((a,b) => {
+    const da = toDate(a) - toDate(b);
+    if(da !== 0) return da;
+    return (a.horaCita||'').localeCompare(b.horaCita||'');
+  });
+
+  // KPIs
+  const total = misCitas.length;
+  const pend = misCitas.filter(c => (!c.asistio || c.asistio==='') && toDate(c) >= hoy).length;
+  const llegaron = misCitas.filter(c => c.asistio==='Si' || c.asistio==='Venta').length;
+  if(kpi) kpi.innerHTML = [
+    ['#2563EB', pend, 'pendientes'],
+    ['#059669', llegaron, 'atendidas'],
+    ['#666', total, 'total'],
+  ].map(([col,n,l])=>`<div style="background:var(--bg2,#f4f4f5);border-radius:10px;padding:8px 14px;min-width:84px;">
+      <div style="font-size:20px;font-weight:700;color:${col};">${n}</div>
+      <div style="font-size:11px;color:var(--muted);">${l}</div></div>`).join('');
+
+  if(!lista.length) {
+    cont.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No tienes citas en esta vista</div>';
+    return;
+  }
+
+  cont.innerHTML = lista.map(c => {
+    const d = toDate(c);
+    const fechaTxt = fmtFecha(c.fechaCita);
+    const esHoy = d >= hoy && d < finHoy;
+    return `
+    <div class="cita-card ${c.asistio==='Si'?'llegó':c.asistio==='No'?'no-llegó':c.asistio==='Venta'?'venta':''}">
+      <div class="cita-top">
+        <div>
+          <div class="cita-name">${esc(c.nombre)}</div>
+          <div class="cita-time">📅 ${esc(fechaTxt)}${esHoy?' <strong style="color:#2563EB;">(HOY)</strong>':''} · ⏰ ${esc(c.horaCita||'--:--')}</div>
+        </div>
+        <span class="badge ${badgeClass(c.asistio)}">${badgeText(c.asistio)}</span>
+      </div>
+      <div class="cita-details">🚗 ${esc(c.vehiculo||'—')}${c.telefono?' · 📞 '+esc(c.telefono):''}</div>
+      ${(!c.asistio || c.asistio==='') ? `
+      <div class="cita-actions">
+        <button type="button" class="btn btn-success btn-sm" onclick="marcarMiCita('${c.docId}','Si')">Llegó</button>
+        <button type="button" class="btn btn-error btn-sm" onclick="marcarMiCita('${c.docId}','No')">No llegó</button>
+        <button type="button" class="btn btn-warning btn-sm" onclick="marcarMiCita('${c.docId}','Venta')">Venta</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// marcar asistencia desde la vista Mis Citas (reusa la colección real)
+async function marcarMiCita(docId, estado) {
+  try {
+    await db.collection('citas_agencia').doc(docId).update({
+      asistio: estado,
+      fechaCheckin: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    // actualizar en memoria y re-render
+    const c = misCitas.find(x => x.docId === docId);
+    if(c) c.asistio = estado;
+    renderMisCitas();
+  } catch(e) {
+    console.error('marcarMiCita:', e.code || e.message);
+    alert('No se pudo actualizar la cita.');
+  }
+}
+
 async function cargarLlegadas() {
   const fechaStr = $('llegadasFecha').value;
   if(!fechaStr) return;
@@ -3286,6 +3410,7 @@ const ROLE_NAV = {
   ],
   piso: [
     {icon:'🏠', label:'Inicio', screen:'home'},
+    {icon:'📋', label:'Mis citas', screen:'mis-citas'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
     {icon:'📅', label:'Nueva cita', screen:'form'},
     {icon:'📱', label:'Escáner QR', screen:'scanner'},
@@ -3340,6 +3465,7 @@ function goTo(screen) {
   $('sidebar')?.classList.remove('open');
   window.scrollTo(0,0);
   if(screen==='llegadas') cargarLlegadas();
+  if(screen==='mis-citas') cargarMisCitas();
   if(screen==='form') {
     cargarVehiculos().then(()=>{ poblarVehiculosForm(); });
   }

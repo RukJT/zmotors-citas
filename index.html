@@ -1927,10 +1927,21 @@ document.addEventListener('DOMContentLoaded', () => {
         try { const p = JSON.parse(saved); if (p.username === username) perfil = p; } catch(e) {}
       }
       if (!perfil) {
-        const snap = await db.collection('usuarios_citas').where('username','==',username).where('activo','==',true).get();
-        if (snap.empty) { await firebase.auth().signOut(); return; }
-        perfil = { ...snap.docs[0].data(), id: snap.docs[0].id };
-        delete perfil.password;
+        try {
+          const snap = await db.collection('usuarios_citas').where('username','==',username).where('activo','==',true).get();
+          if (snap.empty) {
+            // No se encontró perfil, pero NO cerramos sesión: puede ser un fallo transitorio
+            // de reglas/lectura. Dejar que doLogin maneje el perfil.
+            console.warn('Guardia: perfil no encontrado para', username, '- se mantiene la sesión');
+            return;
+          }
+          perfil = { ...snap.docs[0].data(), id: snap.docs[0].id };
+          delete perfil.password;
+        } catch (err) {
+          // Error de permisos/lectura: NO cerrar sesión, solo registrar y salir
+          console.warn('Guardia: no se pudo leer perfil (', err.code || err.message, ') - se mantiene la sesión');
+          return;
+        }
       }
       currentUser = perfil;
       currentAgencia = perfil.agencia || null;

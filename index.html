@@ -458,6 +458,7 @@
               </select>
             </div>
             <button type="button" class="btn btn-primary" onclick="cargarMisCitas()" style="align-self:flex-end;">Actualizar</button>
+            <button type="button" class="btn btn-ghost" onclick="descargarMisCitasPDF()" style="align-self:flex-end;">📄 Descargar PDF</button>
           </div>
           <div id="misCitasKpi" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;"></div>
         </div>
@@ -1837,6 +1838,66 @@ async function marcarMiCita(docId, estado) {
     console.error('marcarMiCita:', e.code || e.message);
     alert('No se pudo actualizar la cita.');
   }
+}
+
+// Descargar/imprimir las citas del asesor como PDF (usa window.print como el resumen)
+function descargarMisCitasPDF() {
+  if(!misCitas || !misCitas.length) { alert('No tienes citas para descargar.'); return; }
+  const toDate = c => c.fechaCita?.toDate ? c.fechaCita.toDate() : (c.fechaCita instanceof Date ? c.fechaCita : new Date(c.fechaCita));
+  const lista = [...misCitas].sort((a,b) => {
+    const d = toDate(a) - toDate(b);
+    return d!==0 ? d : (a.horaCita||'').localeCompare(b.horaCita||'');
+  });
+  const asesor = currentUser?.nombre || currentUser?.username || '';
+  const hoy = new Date().toLocaleDateString('es-MX');
+  const totalPend = lista.filter(c=>!c.asistio||c.asistio==='').length;
+  const totalAtend = lista.filter(c=>c.asistio==='Si'||c.asistio==='Venta').length;
+
+  const filas = lista.map(c => {
+    const estado = c.asistio==='Si'?'Llegó':c.asistio==='No'?'No llegó':c.asistio==='Venta'?'Venta':'Pendiente';
+    const color = c.asistio==='Si'?'#059669':c.asistio==='No'?'#DC2626':c.asistio==='Venta'?'#D97706':'#6B7280';
+    return `<tr>
+      <td>${esc(fmtFecha(c.fechaCita))}</td>
+      <td>${esc(c.horaCita||'—')}</td>
+      <td>${esc(c.nombre||'—')}</td>
+      <td>${esc(c.vehiculo||'—')}</td>
+      <td>${esc(c.telefono||'—')}</td>
+      <td style="color:${color};font-weight:600;">${estado}</td>
+    </tr>`;
+  }).join('');
+
+  const v = window.open('', '_blank');
+  v.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Mis citas — ${esc(asesor)}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1A2340;padding:28px;}
+      h1{font-size:22px;margin-bottom:2px;}
+      .sub{color:#667;font-size:13px;margin-bottom:16px;}
+      .kpis{display:flex;gap:12px;margin-bottom:18px;}
+      .kpi{background:#F1F5FB;border-radius:8px;padding:10px 16px;}
+      .kpi b{font-size:20px;display:block;}
+      .kpi span{font-size:11px;color:#667;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      th{background:#1D3885;color:#fff;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;}
+      td{padding:7px 10px;border-bottom:1px solid #E5E9F0;}
+      tr:nth-child(even) td{background:#F8FAFC;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h1>Mis citas — ${esc(asesor)}</h1>
+    <div class="sub">${esc(currentAgencia||'')} · Generado el ${hoy} · ${lista.length} citas</div>
+    <div class="kpis">
+      <div class="kpi"><b>${lista.length}</b><span>TOTAL</span></div>
+      <div class="kpi"><b style="color:#2563EB;">${totalPend}</b><span>PENDIENTES</span></div>
+      <div class="kpi"><b style="color:#059669;">${totalAtend}</b><span>ATENDIDAS</span></div>
+    </div>
+    <table>
+      <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Vehículo</th><th>Teléfono</th><th>Estado</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <script>window.onload=()=>window.print();<\/script>
+    </body></html>`);
+  v.document.close();
 }
 
 async function cargarLlegadas() {

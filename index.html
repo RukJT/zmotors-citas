@@ -1690,7 +1690,7 @@ function mostrarQR(data) {
   let tel = data.telefono.replace(/\D/g,'');
   if(tel.length === 10) tel = '52' + tel;
   const nombreAgencia = data.agencia || 'Z Motors';
-  const msg = `🚗 *${nombreAgencia} — Confirmación de Cita*\n\nHola ${data.nombre}, tu cita está confirmada:\n\n📅 Fecha: ${data.fechaStr}\n⏰ Hora: ${data.hora}\n🚙 Vehículo: ${data.vehiculo}\n👤 Asesor: ${data.asesor}\n\n📲 Confirma tu llegada con este enlace:\n${url}\n\n_${nombreAgencia} — Te esperamos_`;
+  const msg = `🚗 *${nombreAgencia} — Confirmación de Cita*\n\nHola ${data.nombre}, tu cita está confirmada:\n\n📅 Fecha: ${data.fechaStr}\n⏰ Hora: ${data.hora}\n🚙 Vehículo: ${data.vehiculo}\n👤 Asesor: ${data.asesor}\n\n📲 El día de tu cita presenta tu código QR en la agencia para registrar tu llegada.\n\n_${nombreAgencia} — Te esperamos_`;
   $('btnWA').href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
 
   $('qrBox').classList.add('show');

@@ -770,9 +770,23 @@
         <!-- Filtro -->
         <div class="card">
           <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-            <div class="form-group" style="margin:0;flex:1;min-width:160px;">
-              <label class="form-label">Fecha</label>
+            <div class="form-group" style="margin:0;min-width:160px;">
+              <label class="form-label">Periodo</label>
+              <select id="gaRango" class="form-select" onchange="gaOnRangoChange()">
+                <option value="hoy">Hoy</option>
+                <option value="semana">Esta semana</option>
+                <option value="mes">Este mes</option>
+                <option value="todo">Todo</option>
+                <option value="personalizado">Personalizado…</option>
+              </select>
+            </div>
+            <div class="form-group" id="gaFechaWrap" style="margin:0;flex:1;min-width:150px;display:none;">
+              <label class="form-label">Desde</label>
               <input type="date" id="gaFiltroFecha" class="form-input">
+            </div>
+            <div class="form-group" id="gaFechaFinWrap" style="margin:0;flex:1;min-width:150px;display:none;">
+              <label class="form-label">Hasta</label>
+              <input type="date" id="gaFiltroFechaFin" class="form-input">
             </div>
             <button type="button" class="btn btn-primary" onclick="cargarGerenteAgencia()">Buscar</button>
           </div>
@@ -2726,18 +2740,55 @@ function setupGerenteAgencia() {
   if($('mainTitle')) $('mainTitle').textContent = currentUser.agencia||'Mi Agencia';
   const hoy = new Date().toISOString().split('T')[0];
   if($('gaFiltroFecha')) $('gaFiltroFecha').value = hoy;
-  cargarGerenteAgencia();
+  if($('gaFiltroFechaFin')) $('gaFiltroFechaFin').value = hoy;
+  if($('gaRango')) $('gaRango').value = 'mes';   // por defecto: este mes (más útil que un solo día)
+  gaOnRangoChange();
+}
+
+// muestra/oculta los campos de fecha según el rango elegido
+function gaOnRangoChange() {
+  const rango = $('gaRango')?.value || 'mes';
+  const esPers = rango === 'personalizado';
+  if($('gaFechaWrap')) $('gaFechaWrap').style.display = esPers ? '' : 'none';
+  if($('gaFechaFinWrap')) $('gaFechaFinWrap').style.display = esPers ? '' : 'none';
+  if(!esPers) cargarGerenteAgencia();  // rangos automáticos cargan de una vez
+}
+
+// calcula [desde, hasta) según el rango seleccionado
+function gaCalcularRango() {
+  const rango = $('gaRango')?.value || 'mes';
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let desde, hasta;
+  if(rango === 'hoy') {
+    desde = new Date(hoy);
+    hasta = new Date(hoy); hasta.setDate(hasta.getDate()+1);
+  } else if(rango === 'semana') {
+    const dow = (hoy.getDay()+6)%7; // lunes=0
+    desde = new Date(hoy); desde.setDate(desde.getDate()-dow);
+    hasta = new Date(desde); hasta.setDate(hasta.getDate()+7);
+  } else if(rango === 'mes') {
+    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    hasta = new Date(hoy.getFullYear(), hoy.getMonth()+1, 1);
+  } else if(rango === 'todo') {
+    desde = new Date(2000,0,1);
+    hasta = new Date(2100,0,1);
+  } else { // personalizado
+    const f1 = $('gaFiltroFecha')?.value;
+    const f2 = $('gaFiltroFechaFin')?.value || f1;
+    if(!f1) return null;
+    desde = parseFecha(f1);
+    hasta = parseFecha(f2); hasta.setDate(hasta.getDate()+1);
+  }
+  return { desde, hasta };
 }
 
 async function cargarGerenteAgencia() {
-  const fechaStr = $('gaFiltroFecha')?.value;
-  if(!fechaStr) return;
-  const fechaDate = parseFecha(fechaStr);
-  const man = new Date(fechaDate); man.setDate(man.getDate()+1);
+  const r = gaCalcularRango();
+  if(!r) return;
   try {
     const snap = await db.collection('citas_agencia')
       .where('agencia','==', currentAgencia)
-      .where('fechaCita','>=',fechaDate).where('fechaCita','<',man).get();
+      .where('fechaCita','>=', r.desde).where('fechaCita','<', r.hasta).get();
     const citas = snap.docs.map(d=>({docId:d.id,...d.data()}));
 
     const total=citas.length;

@@ -1821,13 +1821,22 @@ function renderMisCitas() {
   // Solo en la vista "Todas" separamos en Próximas + Historial.
   // En los demás filtros mostramos la lista tal cual.
   if(filtro === 'todas') {
-    // Próximas/activas = de hoy en adelante O sin atender
-    const proximas = lista.filter(c => toDate(c) >= hoy || sinAtender(c));
-    const historial = lista.filter(c => !(toDate(c) >= hoy || sinAtender(c)));
-    // próximas se ordenan de más cercana a más lejana (ascendente)
+    // Tres grupos claros:
+    //  1) Próximas: de hoy en adelante (lo primero que ve el asesor)
+    //  2) Pendientes atrasadas: fecha pasada pero sin marcar asistencia
+    //  3) Historial: fecha pasada y ya atendidas
+    const proximas = lista.filter(c => toDate(c) >= hoy);
+    const atrasadas = lista.filter(c => toDate(c) < hoy && sinAtender(c));
+    const historial = lista.filter(c => toDate(c) < hoy && !sinAtender(c));
+    // próximas: de la más cercana a la más lejana (ascendente)
     proximas.sort((a,b)=>{ const d=toDate(a)-toDate(b); return d!==0?d:(a.horaCita||'').localeCompare(b.horaCita||''); });
+    // atrasadas e historial: más recientes primero (descendente)
+    const desc = (a,b)=>{ const d=toDate(b)-toDate(a); return d!==0?d:(b.horaCita||'').localeCompare(a.horaCita||''); };
+    atrasadas.sort(desc); historial.sort(desc);
+
     let html = '';
-    if(proximas.length) html += tituloSeccion('📌 Pendientes y próximas', proximas.length) + proximas.map(tarjeta).join('');
+    if(proximas.length)  html += tituloSeccion('📅 Próximas', proximas.length) + proximas.map(tarjeta).join('');
+    if(atrasadas.length) html += tituloSeccion('⏳ Pendientes por marcar', atrasadas.length) + atrasadas.map(tarjeta).join('');
     if(historial.length) html += tituloSeccion('🗂️ Historial', historial.length) + historial.map(tarjeta).join('');
     cont.innerHTML = html || '<div class="empty"><div class="empty-icon">📭</div>No tienes citas</div>';
     return;

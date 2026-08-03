@@ -76,16 +76,21 @@ module.exports = async (req, res) => {
 
       // Crear cuenta en Auth (o reutilizar si quedó huérfana)
       const email = username + DOMINIO;
+      let uid;
       try {
-        await auth.createUser({ email, password, displayName: nombre });
+        const nuevo = await auth.createUser({ email, password, displayName: nombre });
+        uid = nuevo.uid;
       } catch (e) {
         if (e.code === 'auth/email-already-exists') {
           const u = await auth.getUserByEmail(email);
           await auth.updateUser(u.uid, { password, displayName: nombre });
+          uid = u.uid;
         } else {
           throw e;
         }
       }
+      // Custom Claims: graba rol y agencia en el token (seguridad de las reglas Firestore)
+      await auth.setCustomUserClaims(uid, { rol, agencia });
       // Perfil SIN contraseña
       await db.collection('usuarios_citas').add({ username, nombre, agencia, agenciaMarca, rol, activo: true });
       return res.status(200).json({ ok: true });
@@ -126,6 +131,32 @@ module.exports = async (req, res) => {
         await auth.createUser({ email, password, displayName: doc.data().nombre || username });
       }
       return res.status(200).json({ ok: true });
+    }
+
+    // ── SINCRONIZAR CLAIMS (rol/agencia -> token) ──
+    // Con docId: sincroniza un usuario. Sin docId: sincroniza TODOS (migración).
+    if (accion === 'sync_claims') {
+      const docId = String(body.docId || '');
+      let perfiles;
+      if (docId) {
+        const doc = await db.collection('usuarios_citas').doc(docId).get();
+        if (!doc.exists) return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+        perfiles = [{ id: doc.id, ...doc.data() }];
+      } else {
+        const snap = await db.collection('usuarios_citas').get();
+        perfiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      const resultados = [];
+      for (const p of perfiles) {
+        try {
+          const u = await auth.getUserByEmail(p.username + DOMINIO);
+          await auth.setCustomUserClaims(u.uid, { rol: p.rol || 'piso', agencia: p.agencia || '' });
+          resultados.push({ username: p.username, ok: true });
+        } catch (e) {
+          resultados.push({ username: p.username, ok: false, error: e.code || e.message });
+        }
+      }
+      return res.status(200).json({ ok: true, total: resultados.length, resultados });
     }
 
     return res.status(400).json({ ok: false, error: 'Acción no reconocida' });

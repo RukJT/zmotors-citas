@@ -43,8 +43,11 @@ async function verificarAdmin(req) {
     .get();
   if (snap.empty) return { error: 'Perfil no encontrado' };
   const perfil = snap.docs[0].data();
-  if (perfil.rol !== 'admin') return { error: 'Se requiere rol de administrador' };
-  return { ok: true, username };
+  // Permitir admin y gerente de agencia (el gerente tendrá restricciones más abajo)
+  if (perfil.rol !== 'admin' && perfil.rol !== 'gerente_agencia') {
+    return { error: 'No tienes permiso para gestionar usuarios' };
+  }
+  return { ok: true, username, rol: perfil.rol, agencia: perfil.agencia };
 }
 
 module.exports = async (req, res) => {
@@ -52,11 +55,46 @@ module.exports = async (req, res) => {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
   try {
-    const admin = await verificarAdmin(req);
-    if (!admin.ok) return res.status(403).json({ ok: false, error: admin.error });
+    const quien = await verificarAdmin(req);
+    if (!quien.ok) return res.status(403).json({ ok: false, error: quien.error });
+    const esGerente = quien.rol === 'gerente_agencia';
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const accion = body.accion;
+
+    // ── GUARDIÁN DE RESTRICCIONES PARA GERENTE ──
+    // Un gerente de agencia solo puede gestionar asesores/recepción de SU agencia.
+    // Devuelve un mensaje de error si la acción no está permitida, o null si está OK.
+    async function bloqueadoParaGerente(acc, b) {
+      if (!esGerente) return null; // admin no tiene restricciones
+      // Roles que un gerente puede crear/gestionar
+      const rolesPermitidos = ['piso', 'recepcion'];
+      if (acc === 'crear') {
+        if (!rolesPermitidos.includes(String(b.rol || ''))) {
+          return 'Un gerente solo puede crear asesores o recepcionistas';
+        }
+        if (String(b.agencia || '') !== quien.agencia) {
+          return 'Solo puedes crear usuarios de tu propia agencia';
+        }
+        return null;
+      }
+      // Para eliminar/password: verificar que el usuario objetivo sea de su agencia y rol permitido
+      if (acc === 'eliminar' || acc === 'password') {
+        const docId = String(b.docId || '');
+        if (!docId) return 'Falta identificar al usuario';
+        const doc = await db.collection('usuarios_citas').doc(docId).get();
+        if (!doc.exists) return 'Usuario no encontrado';
+        const objetivo = doc.data();
+        if (objetivo.agencia !== quien.agencia) return 'Ese usuario no es de tu agencia';
+        if (!rolesPermitidos.includes(objetivo.rol)) return 'No puedes gestionar ese tipo de usuario';
+        return null;
+      }
+      // Un gerente NO puede correr sync_claims ni otras acciones
+      return 'Acción no permitida para tu rol';
+    }
+
+    const bloqueo = await bloqueadoParaGerente(accion, body);
+    if (bloqueo) return res.status(403).json({ ok: false, error: bloqueo });
 
     // ── CREAR USUARIO ──
     if (accion === 'crear') {

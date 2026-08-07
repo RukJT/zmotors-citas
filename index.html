@@ -779,9 +779,15 @@
             <div class="form-group"><label class="form-label">Usuario</label><input type="text" id="meUsername" class="form-input" placeholder="Ej: asesoraf03"></div>
             <div class="form-group"><label class="form-label">Contraseña</label><input type="text" id="mePassword" class="form-input" placeholder="Mínimo 6 caracteres"></div>
             <div class="form-group"><label class="form-label">Puesto</label>
-              <select id="meRol" class="form-select">
+              <select id="meRol" class="form-select" onchange="meToggleEspecialidad()">
                 <option value="piso">Asesor de piso</option>
                 <option value="recepcion">Recepción</option>
+              </select>
+            </div>
+            <div class="form-group" id="meEspecialidadWrap"><label class="form-label">Especialidad</label>
+              <select id="meEspecialidad" class="form-select">
+                <option value="nuevos">Nuevos</option>
+                <option value="seminuevos">Seminuevos</option>
               </select>
             </div>
             <button type="button" class="btn btn-success btn-block" onclick="meCrear()">Agregar al equipo</button>
@@ -2791,26 +2797,43 @@ async function cargarAdminDash() {
 // ════════════════════════════════════════════════════════
 // MI EQUIPO — gerente crea/gestiona asesores y recepción de su agencia
 // ════════════════════════════════════════════════════════
+// muestra/oculta el selector de especialidad (solo aplica a asesores)
+function meToggleEspecialidad() {
+  const esAsesor = ($('meRol')?.value === 'piso');
+  const wrap = $('meEspecialidadWrap');
+  if(wrap) wrap.style.display = esAsesor ? '' : 'none';
+}
+
 async function meCargar() {
   const cont = $('meList');
   if(!cont) return;
+  meToggleEspecialidad();
   try {
     const snap = await db.collection('usuarios_citas').where('agencia','==', currentAgencia).get();
     const equipo = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(u => u.rol === 'piso' || u.rol === 'recepcion');
     if(!equipo.length) { cont.innerHTML = '<div class="empty">Aún no tienes personal registrado</div>'; return; }
-    cont.innerHTML = equipo.map(u => `
+    cont.innerHTML = equipo.map(u => {
+      const esp = u.rol==='piso'
+        ? ` · <span style="color:${u.especialidad==='seminuevos'?'#D97706':'#2563EB'};font-weight:600;">${u.especialidad==='seminuevos'?'Seminuevos':'Nuevos'}</span>`
+        : '';
+      const btnEsp = u.rol==='piso'
+        ? `<button type="button" class="btn btn-ghost btn-sm" onclick="meEditarEspecialidad('${u.id}','${esc(u.nombre)}','${u.especialidad||'nuevos'}')">🔄</button>`
+        : '';
+      return `
       <div class="admin-item">
         <div class="admin-item-info">
           <div class="admin-item-name">${esc(u.nombre)}</div>
-          <div class="admin-item-meta">${esc(u.username)} · ${u.rol==='piso'?'Asesor':'Recepción'}</div>
+          <div class="admin-item-meta">${esc(u.username)} · ${u.rol==='piso'?'Asesor':'Recepción'}${esp}</div>
         </div>
         <div style="display:flex;gap:6px;">
+          ${btnEsp}
           <button type="button" class="btn btn-ghost btn-sm" onclick="mePassword('${u.id}','${esc(u.nombre)}')">🔑</button>
           <button type="button" class="btn btn-error btn-sm" onclick="meEliminar('${u.id}','${esc(u.nombre)}')">Eliminar</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     console.error('meCargar:', e.code || e.message);
     cont.innerHTML = '<div class="empty">No se pudo cargar el equipo</div>';
@@ -2840,12 +2863,14 @@ async function meCrear() {
   const username = $('meUsername').value.trim().toLowerCase();
   const password = $('mePassword').value;
   const rol = $('meRol').value;
+  const especialidad = (rol === 'piso') ? ($('meEspecialidad')?.value || 'nuevos') : null;
   if(!nombre || !username || !password) { meShowAlert('Completa todos los campos', 'error'); return; }
   if(password.length < 6) { meShowAlert('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
   meShowAlert('Creando…', 'info');
   const res = await meApi({
     accion: 'crear',
     nombre, username, password, rol,
+    especialidad,
     agencia: currentAgencia,
     agenciaMarca: currentUser.agenciaMarca || '',
   });
@@ -2856,6 +2881,15 @@ async function meCrear() {
   } else {
     meShowAlert('Error: ' + (res.error || 'no se pudo crear'), 'error');
   }
+}
+
+// Cambiar especialidad de un asesor (via backend, respeta las reglas de Firestore)
+async function meEditarEspecialidad(docId, nombre, actual) {
+  const nueva = actual === 'seminuevos' ? 'nuevos' : 'seminuevos';
+  if(!confirm(`Cambiar a ${nombre} de "${actual==='seminuevos'?'Seminuevos':'Nuevos'}" a "${nueva==='seminuevos'?'Seminuevos':'Nuevos'}"?`)) return;
+  const res = await meApi({ accion:'especialidad', docId, especialidad: nueva });
+  if(res.ok) meCargar();
+  else alert('No se pudo cambiar la especialidad: ' + (res.error || ''));
 }
 
 async function meEliminar(docId, nombre) {

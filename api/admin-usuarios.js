@@ -78,8 +78,8 @@ module.exports = async (req, res) => {
         }
         return null;
       }
-      // Para eliminar/password: verificar que el usuario objetivo sea de su agencia y rol permitido
-      if (acc === 'eliminar' || acc === 'password') {
+      // Para eliminar/password/especialidad: verificar que el usuario objetivo sea de su agencia y rol permitido
+      if (acc === 'eliminar' || acc === 'password' || acc === 'especialidad') {
         const docId = String(b.docId || '');
         if (!docId) return 'Falta identificar al usuario';
         const doc = await db.collection('usuarios_citas').doc(docId).get();
@@ -104,6 +104,7 @@ module.exports = async (req, res) => {
       const agencia = String(body.agencia || '').trim();
       const agenciaMarca = String(body.agenciaMarca || '').trim();
       const rol = String(body.rol || 'piso');
+      const especialidad = body.especialidad ? String(body.especialidad) : null;
       if (!username || !nombre || !agencia) return res.status(400).json({ ok: false, error: 'Faltan campos' });
       if (!/^[a-z0-9._-]+$/.test(username)) return res.status(400).json({ ok: false, error: 'Username inválido (solo letras, números, . _ -)' });
       if (password.length < 6) return res.status(400).json({ ok: false, error: 'Contraseña mínima de 6 caracteres' });
@@ -129,8 +130,10 @@ module.exports = async (req, res) => {
       }
       // Custom Claims: graba rol y agencia en el token (seguridad de las reglas Firestore)
       await auth.setCustomUserClaims(uid, { rol, agencia });
-      // Perfil SIN contraseña
-      await db.collection('usuarios_citas').add({ username, nombre, agencia, agenciaMarca, rol, activo: true });
+      // Perfil SIN contraseña (incluye especialidad si es asesor)
+      const perfilNuevo = { username, nombre, agencia, agenciaMarca, rol, activo: true };
+      if (rol === 'piso' && especialidad) perfilNuevo.especialidad = especialidad;
+      await db.collection('usuarios_citas').add(perfilNuevo);
       return res.status(200).json({ ok: true });
     }
 
@@ -168,6 +171,20 @@ module.exports = async (req, res) => {
         // Usuario legado sin cuenta Auth: creársela con la nueva contraseña
         await auth.createUser({ email, password, displayName: doc.data().nombre || username });
       }
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── CAMBIAR ESPECIALIDAD (nuevos/seminuevos) ──
+    if (accion === 'especialidad') {
+      const docId = String(body.docId || '');
+      const especialidad = String(body.especialidad || '');
+      if (!docId) return res.status(400).json({ ok: false, error: 'Falta docId' });
+      if (especialidad !== 'nuevos' && especialidad !== 'seminuevos') {
+        return res.status(400).json({ ok: false, error: 'Especialidad inválida' });
+      }
+      const doc = await db.collection('usuarios_citas').doc(docId).get();
+      if (!doc.exists) return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+      await db.collection('usuarios_citas').doc(docId).update({ especialidad });
       return res.status(200).json({ ok: true });
     }
 

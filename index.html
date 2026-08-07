@@ -513,7 +513,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Tipo</label>
-                  <select id="formTipo" class="form-select">
+                  <select id="formTipo" class="form-select" onchange="poblarVehiculosForm()">
                     <option value="Nuevo">Nuevo</option>
                     <option value="Seminuevo">Seminuevo</option>
                   </select>
@@ -648,7 +648,6 @@
                   <select id="nuRol" class="form-select">
                     <option value="piso">Asesor de piso</option>
                     <option value="recepcion">Recepción</option>
-                    <option value="gerente_area">Gerente de área</option>
                     <option value="gerente_agencia">Gerente de agencia</option>
                     <option value="admin">Administrador</option>
                   </select>
@@ -676,6 +675,12 @@
               <div class="card-title">Nuevo vehículo</div>
               <div class="form-group"><label class="form-label">Agencia</label><select id="nvAgencia" class="form-select"><option value="">Seleccionar...</option></select></div>
               <div class="form-group"><label class="form-label">Modelo</label><input type="text" id="nvModelo" class="form-input" placeholder="Ej: Jetta 2025"></div>
+              <div class="form-group"><label class="form-label">Tipo</label>
+                <select id="nvTipo" class="form-select">
+                  <option value="nuevo">Nuevo</option>
+                  <option value="seminuevo">Seminuevo</option>
+                </select>
+              </div>
               <button type="button" class="btn btn-success btn-block" onclick="crearVehiculo()">Agregar vehículo</button>
             </div>
             <div><div id="vehiculosList"></div></div>
@@ -1070,7 +1075,16 @@
         <div class="card">
           <div id="rpTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
           <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-            <div class="form-group" style="margin:0;flex:1;min-width:140px;"><label class="form-label">Mes</label>
+            <div class="form-group" style="margin:0;min-width:150px;"><label class="form-label">Periodo</label>
+              <select id="rpPeriodo" class="form-select" onchange="rpOnPeriodoChange()">
+                <option value="mensual">Mensual</option>
+                <option value="diario">Diario</option>
+                <option value="semanal">Semanal</option>
+                <option value="anual">Anual</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </div>
+            <div class="form-group rp-mes" style="margin:0;flex:1;min-width:130px;"><label class="form-label">Mes</label>
               <select id="rpMes" class="form-select">
                 <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
                 <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
@@ -1078,12 +1092,15 @@
                 <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0;width:100px;"><label class="form-label">Año</label><select id="rpAnio" class="form-select"></select></div>
+            <div class="form-group rp-anio" style="margin:0;width:100px;"><label class="form-label">Año</label><select id="rpAnio" class="form-select"></select></div>
+            <div class="form-group rp-fecha" style="margin:0;width:160px;display:none;"><label class="form-label">Día</label><input type="date" id="rpFecha" class="form-input"></div>
+            <div class="form-group rp-desde" style="margin:0;width:160px;display:none;"><label class="form-label">Desde</label><input type="date" id="rpDesde" class="form-input"></div>
+            <div class="form-group rp-hasta" style="margin:0;width:160px;display:none;"><label class="form-label">Hasta</label><input type="date" id="rpHasta" class="form-input"></div>
             <button type="button" class="btn btn-primary" onclick="cargarReporteProd()">Generar reporte</button>
             <button type="button" class="btn btn-ghost" onclick="imprimirReporteProd()">🖨 Imprimir / PDF</button>
           </div>
         </div>
-        <div id="rpContenido"><div class="empty"><div class="empty-icon">🏆</div>Selecciona un mes para generar el reporte</div></div>
+        <div id="rpContenido"><div class="empty"><div class="empty-icon">🏆</div>Selecciona un periodo para generar el reporte</div></div>
       </div>
 
       <!-- ══ SCREEN: CHECKIN (cliente) ══ -->
@@ -1609,12 +1626,19 @@ function poblarAsesoresForm() {
 }
 function poblarVehiculosForm() {
   const sel = $('formVehiculo');
+  if(!sel) return;
+  const tipoSel = $('formTipo')?.value || 'Nuevo';
+  // normalizar: el catálogo usa 'nuevo'/'seminuevo'; el form usa 'Nuevo'/'Seminuevo'
+  const tipoNorm = tipoSel.toLowerCase().includes('semi') ? 'seminuevo' : 'nuevo';
   sel.innerHTML = '<option value="">Seleccionar vehículo...</option>';
-  vehiculos.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v.modelo; o.textContent = v.modelo;
-    sel.appendChild(o);
-  });
+  vehiculos
+    // vehículos sin campo 'tipo' se asumen 'nuevo' (compatibilidad con CUPRA)
+    .filter(v => (v.tipo || 'nuevo') === tipoNorm)
+    .forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.modelo; o.textContent = v.modelo;
+      sel.appendChild(o);
+    });
 }
 
 // ════════════════════════════════════════════════════════
@@ -2386,8 +2410,9 @@ async function eliminarAsesor(id) {
 async function crearVehiculo() {
   const modelo=$('nvModelo').value.trim();
   const agencia=$('nvAgencia').value;
+  const tipo=$('nvTipo')?.value || 'nuevo';
   if(!modelo||!agencia) { alert('Completa todos los campos'); return; }
-  await db.collection('vehiculos_citas').add({modelo,agencia,activo:true});
+  await db.collection('vehiculos_citas').add({modelo,agencia,tipo,activo:true});
   $('nvModelo').value='';
   await cargarVehiculosAdmin();
 }
@@ -2396,7 +2421,7 @@ async function cargarVehiculosAdmin() {
   const snap=await db.collection('vehiculos_citas').get();
   const list=snap.docs.map(d=>({id:d.id,...d.data()}));
   $('vehiculosList').innerHTML=list.length
-    ? list.map(v=>`<div class="admin-item"><div class="admin-item-info"><div class="admin-item-name">${esc(v.modelo)}</div><div class="admin-item-meta">${esc(v.agencia)}</div></div><button type="button" class="btn btn-error btn-sm" onclick="eliminarVehiculo('${v.id}')">Eliminar</button></div>`).join('')
+    ? list.map(v=>`<div class="admin-item"><div class="admin-item-info"><div class="admin-item-name">${esc(v.modelo)} <span style="font-size:11px;color:var(--muted);font-weight:400;">· ${esc((v.tipo||'nuevo')==='seminuevo'?'Seminuevo':'Nuevo')}</span></div><div class="admin-item-meta">${esc(v.agencia)}</div></div><button type="button" class="btn btn-error btn-sm" onclick="eliminarVehiculo('${v.id}')">Eliminar</button></div>`).join('')
     : '<div class="empty">Sin vehículos</div>';
 }
 
@@ -3571,13 +3596,8 @@ const ROLE_NAV = {
     {icon:'🏆', label:'Reporte productividad', screen:'reporte-prod'},
     {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
     {icon:'✅', label:'Llegadas', screen:'llegadas'},
-    {icon:'📋', label:'Corte del día', screen:'corte'},
-  ],
-  gerente_area: [
-    {icon:'📊', label:'Mi área', screen:'gerente-area'},
-    {icon:'📈', label:'Estadísticas leads', screen:'leads-stats'},
-    {icon:'✅', label:'Llegadas', screen:'llegadas'},
     {icon:'📥', label:'Importar citas', screen:'import-excel'},
+    {icon:'📋', label:'Corte del día', screen:'corte'},
   ],
   piso: [
     {icon:'🏠', label:'Inicio', screen:'home'},
